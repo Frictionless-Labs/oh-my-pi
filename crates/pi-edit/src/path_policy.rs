@@ -177,7 +177,6 @@ impl PathPolicy {
 		if normalized.is_empty() {
 			return None;
 		}
-		let normalized_path = Path::new(normalized);
 		let started = Instant::now();
 		let request = pi_walker::WalkRequest::new(&self.cwd)
 			.hidden(true)
@@ -198,7 +197,7 @@ impl PathPolicy {
 				},
 				|entry| {
 					if entry.file_type == pi_walker::FileType::File
-						&& Path::new(&entry.relative_path).ends_with(normalized_path)
+						&& Self::path_has_component_suffix(entry.relative_path, normalized)
 					{
 						matches.push(entry.relative_path.to_owned());
 						if matches.len() == 2 {
@@ -215,6 +214,43 @@ impl PathPolicy {
 		}
 		let display = matches.pop()?;
 		Some(Resolved { absolute: self.cwd.join(&display), display })
+	}
+
+	/// Return whether `candidate` ends with the complete relative components in
+	/// `suffix`, treating both slash spellings as separators. The walker emits
+	/// forward-slash display paths on every host, while authored paths can carry
+	/// either spelling; comparing strings through platform-native [`Path`]
+	/// components makes that contract depend on the runner OS.
+	fn path_has_component_suffix(candidate: &str, suffix: &str) -> bool {
+		let Some(candidate) = Self::relative_path_components(candidate) else {
+			return false;
+		};
+		let Some(suffix) = Self::relative_path_components(suffix) else {
+			return false;
+		};
+		candidate.ends_with(&suffix)
+	}
+
+	fn relative_path_components(path: &str) -> Option<Vec<&str>> {
+		if path.is_empty() || path.starts_with(['/', '\\']) {
+			return None;
+		}
+		let mut components = Vec::new();
+		for component in path.split(['/', '\\']) {
+			if component.is_empty() || component == "." {
+				continue;
+			}
+			if component == ".."
+				|| components.is_empty()
+					&& component.len() == 2
+					&& component.as_bytes()[0].is_ascii_alphabetic()
+					&& component.as_bytes()[1] == b':'
+			{
+				return None;
+			}
+			components.push(component);
+		}
+		(!components.is_empty()).then_some(components)
 	}
 
 	/// Enforce plan-mode write restrictions: renames and deletes are refused;
@@ -901,6 +937,26 @@ mod tests {
 		std::fs::create_dir_all(tmp.path().join("other/src")).unwrap();
 		std::fs::write(tmp.path().join("other/src/a.ts"), "").unwrap();
 		assert!(p.recover_missing("src/a.ts").is_none());
+	}
+
+	#[test]
+	fn suffix_matching_is_separator_independent_and_component_bounded() {
+		for (candidate, suffix, expected) in [
+			("nested/a.txt", "a.txt", true),
+			(r"nested\a.txt", "a.txt", true),
+			(r"deep\nested/a.txt", r"nested\a.txt", true),
+			("nested/a.txt", "ested/a.txt", false),
+			("nested/a.txt", "nested", false),
+			("nested/a.txt", "../a.txt", false),
+			("nested/a.txt", "/a.txt", false),
+			("nested/a.txt", "", false),
+		] {
+			assert_eq!(
+				PathPolicy::path_has_component_suffix(candidate, suffix),
+				expected,
+				"{candidate:?} / {suffix:?}"
+			);
+		}
 	}
 
 	#[test]
