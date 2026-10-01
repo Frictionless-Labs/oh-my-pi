@@ -2264,7 +2264,7 @@ mod tests {
 			let actual = shell
 				.env_str(key)
 				.expect("path-valued environment variable");
-			assert_eq!(std::path::Path::new(&actual), expected, "{key}: {actual:?}");
+			assert_eq!(std::path::Path::new(actual.as_ref()), expected, "{key}: {actual:?}");
 		}
 	}
 
