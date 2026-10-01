@@ -37,6 +37,28 @@ jobs:
             '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb' \
             "${archive}" | sha256sum --check --strict
           tar -xzf "${archive}" -C "${RUNNER_TEMP}" gitleaks
+          canary_root="${RUNNER_TEMP}/gitleaks-canary"
+          mkdir -p "${canary_root}/packages/catalog/src"
+          cp .gitleaks.toml "${canary_root}/.gitleaks.toml"
+          printf '%s%s\n%s\n%s%s\n' \
+            '-----BEGIN PRIVATE ' \
+            'KEY-----' \
+            'MIIBVwIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEAuSyntheticCanaryOnly' \
+            '-----END PRIVATE ' \
+            'KEY-----' \
+            > "${canary_root}/packages/catalog/src/models.json"
+          set +e
+          "${RUNNER_TEMP}/gitleaks" dir "${canary_root}" \
+            --config "${canary_root}/.gitleaks.toml" \
+            --redact \
+            --no-banner \
+            --no-color
+          canary_status=$?
+          set -e
+          if [[ "${canary_status}" -ne 1 ]]; then
+            echo "::error::Gitleaks detector-scope canary returned ${canary_status}; expected one finding"
+            exit 1
+          fi
           "${RUNNER_TEMP}/gitleaks" git . \
             --config .gitleaks.toml \
             --log-opts="--all" \

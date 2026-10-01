@@ -14,14 +14,14 @@ paths = [
 # high-entropy public names, not credentials.
 [[allowlists]]
 description = "generated public model catalog identifiers"
-rules = ["generic-api-key"]
+targetRules = ["generic-api-key"]
 paths = ['''^packages/catalog/src/models\.json$''']
 
 # These source and documentation locations contain public OAuth client IDs,
 # protocol constants, model artifact hashes, or detector fixture text.
 [[allowlists]]
 description = "public protocol and artifact identifiers"
-rules = ["generic-api-key"]
+targetRules = ["generic-api-key"]
 paths = [
     '''^docs/provider-quirks\.md$''',
     '''^packages/ai/src/providers/anthropic\.ts$''',
@@ -33,14 +33,14 @@ paths = [
 # material and is never used as a production identity or authentication secret.
 [[allowlists]]
 description = "public Claude trace debug key"
-rules = ["private-key"]
+targetRules = ["private-key"]
 paths = ['''^packages/coding-agent/src/cli/claude-trace-cli\.ts$''']
 
 # Each listed test file intentionally exercises secret handling, token parsing,
 # retry behavior, or wire compatibility with synthetic fixture values.
 [[allowlists]]
 description = "synthetic credential test fixtures"
-rules = [
+targetRules = [
     "generic-api-key",
     "github-pat",
     "gitlab-pat",
