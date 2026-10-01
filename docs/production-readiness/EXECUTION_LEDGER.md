@@ -281,3 +281,22 @@ Append-only evidence for the production-readiness run against the public
 | Follow-up | Verify the rulesets enforce the latest candidate merge and protected release-tag creation. |
 | Reviewer | Executor |
 | Secrets check | PASS — settings payloads contained no credential values. |
+
+## 2026-10-01T17:14:37Z — Phase 10 Windows contract repair
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-01T17:14:37Z` |
+| Phase | `10` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| HEAD | `c5aa2062411949f3bf7eb40ca51091e99d5c7b18` |
+| Command | Failed Windows job inspection; regression RED/GREEN; `bun run fmt:rs`; `bun run check:rs`; `bun run test:rs`; `bun check`; `git diff --check` |
+| Exit code | `0` for final local gates; authoritative Windows candidate job `1` before the repair |
+| Output evidence | Windows run `36883753594`, job `110442215477`, ran 2,813 tests: 2,809 passed, 4 failed, 4 skipped. The failures were nested bare-name edit recovery and two trailing-separator-only `PWD` assertions. The repair compares validated trailing path components independent of slash spelling and tests path identity for Windows temp variables. Final local Rust result: 3,060 passed, 5 skipped, plus doctests; Rust checks and `bun check` passed. |
+| Files changed | `crates/pi-edit/src/path_policy.rs`; `crates/pi-shell/src/shell.rs` |
+| Classification | `FIX_NOW` locally; `PROVE_NOW` on hosted Windows |
+| Follow-up | Push the exact candidate and require all 15 strict hosted contexts to succeed on its SHA. |
+| Reviewer | Executor |
+| Secrets check | PASS — only public CI diagnostics and path-shape values were retained. |
