@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed managed JavaScript eval environments loading undeclared packages from Bun's global package cache.
+
 ## [18.4.6] - 2026-10-01
 
 ### Added
