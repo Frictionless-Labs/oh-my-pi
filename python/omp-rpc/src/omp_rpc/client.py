@@ -1153,9 +1153,7 @@ class RpcClient:
             self._request("open_session", sessionDir=str(session_dir))
         )
 
-    def set_event_filter(
-        self, events: Sequence[str] | None
-    ) -> tuple[str, ...] | None:
+    def set_event_filter(self, events: Sequence[str] | None) -> tuple[str, ...] | None:
         """Forward only the listed session event types; `None` forwards all.
 
         Responses, `prompt_result`, and UI/host frames are never filtered. Returns

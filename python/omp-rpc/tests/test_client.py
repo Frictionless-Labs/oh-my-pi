@@ -1054,15 +1054,27 @@ class RpcClientTests(unittest.TestCase):
             client.steer("same")
             client.follow_up("same")
             client.follow_up("keep")
-            self.assertIs(client.remove_queued_message("same", "steering").removed, True)
+            self.assertIs(
+                client.remove_queued_message("same", "steering").removed, True
+            )
             self.assertEqual(client.get_state().queued_message_count, 3)
-            self.assertIs(client.remove_queued_message("same", "steering").removed, True)
-            self.assertIs(client.remove_queued_message("same", "steering").removed, False)
+            self.assertIs(
+                client.remove_queued_message("same", "steering").removed, True
+            )
+            self.assertIs(
+                client.remove_queued_message("same", "steering").removed, False
+            )
             self.assertEqual(client.get_state().queued_message_count, 2)
-            self.assertIs(client.remove_queued_message("same", "followUp").removed, True)
-            self.assertIs(client.remove_queued_message("missing", "followUp").removed, False)
+            self.assertIs(
+                client.remove_queued_message("same", "followUp").removed, True
+            )
+            self.assertIs(
+                client.remove_queued_message("missing", "followUp").removed, False
+            )
             self.assertEqual(client.get_state().queued_message_count, 1)
-            self.assertIs(client.remove_queued_message("keep", "followUp").removed, True)
+            self.assertIs(
+                client.remove_queued_message("keep", "followUp").removed, True
+            )
 
     def test_queue_update_event_matches_get_state_and_removal_invariant(self) -> None:
         updates: list[QueueUpdateEvent] = []
@@ -1075,7 +1087,10 @@ class RpcClientTests(unittest.TestCase):
             # the reader thread dispatches frames in order: the get_state round trip
             # guarantees both updates have reached the listener before asserting.
             state = client.get_state()
-            self.assertEqual([event.follow_up for event in updates], [("first",), ("first", "second")])
+            self.assertEqual(
+                [event.follow_up for event in updates],
+                [("first",), ("first", "second")],
+            )
             self.assertEqual(updates[-1].steering, ())
             self.assertEqual(state.queued_messages.follow_up, updates[-1].follow_up)
             self.assertEqual(state.queued_messages.steering, updates[-1].steering)
@@ -1084,7 +1099,9 @@ class RpcClientTests(unittest.TestCase):
             # passed back verbatim to remove_queued_message with its queue,
             # removes that message.
             for text in state.queued_messages.follow_up:
-                self.assertIs(client.remove_queued_message(text, "followUp").removed, True)
+                self.assertIs(
+                    client.remove_queued_message(text, "followUp").removed, True
+                )
 
             self.assertEqual(client.get_state().queued_messages.follow_up, ())
             self.assertEqual(updates[-1].follow_up, ())
@@ -1102,7 +1119,7 @@ class RpcClientTests(unittest.TestCase):
             self.assertEqual(client.get_state().queued_message_count, 1)
 
     def test_remove_queued_message_rejects_missing_result(self) -> None:
-        server = FAKE_SERVER.replace('{"removed": removed}', '{}')
+        server = FAKE_SERVER.replace('{"removed": removed}', "{}")
         with self.make_client(server) as client:
             with self.assertRaises(ValueError):
                 client.remove_queued_message("missing", "steering")
@@ -1118,7 +1135,9 @@ class RpcClientTests(unittest.TestCase):
             client.follow_up("same")
             client.follow_up("same")
             self.assertIs(client.promote_queued_message("same").promoted, True)
-            self.assertIs(client.remove_queued_message("same", "steering").removed, True)
+            self.assertIs(
+                client.remove_queued_message("same", "steering").removed, True
+            )
             self.assertIs(client.promote_queued_message("same").promoted, True)
             self.assertIs(client.promote_queued_message("same").promoted, False)
             self.assertIs(client.promote_queued_message("missing").promoted, False)
@@ -1258,7 +1277,9 @@ class RpcClientTests(unittest.TestCase):
         self.assertEqual(turn.result.status, "completed")
         self.assertTrue(turn.result.agent_invoked)
         self.assertNotEqual(turn.result.id, "req_earlier")
-        self.assertEqual([result.id for result in results], ["req_earlier", turn.result.id])
+        self.assertEqual(
+            [result.id for result in results], ["req_earlier", turn.result.id]
+        )
 
     def test_prompt_and_wait_returns_immediately_for_local_prompt(self) -> None:
         with self.make_client() as client:
@@ -1704,9 +1725,7 @@ class RpcClientTests(unittest.TestCase):
             client.on_unknown_notification(
                 lambda event: unknown_errors.append(event.parse_error)
             )
-            with self.assertRaisesRegex(
-                RpcError, "Failed to parse terminal agent_end"
-            ):
+            with self.assertRaisesRegex(RpcError, "Failed to parse terminal agent_end"):
                 client.prompt_and_wait("malformed terminal", timeout=1.0)
 
         self.assertEqual(len(unknown_errors), 1)
