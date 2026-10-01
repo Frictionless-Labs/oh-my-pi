@@ -540,7 +540,7 @@ mod tests {
 
 	use clap::Parser;
 
-	use super::Mktemp;
+	use super::{Mktemp, TMPDIR_ENV_VAR};
 	use crate::host::{Host, Utility};
 
 	fn canonical_tempdir() -> (tempfile::TempDir, PathBuf) {
@@ -581,7 +581,7 @@ mod tests {
 	}
 
 	fn tmpdir_env(dir: &Path) -> [(&str, &str); 1] {
-		[("TMPDIR", dir.to_str().unwrap())]
+		[(TMPDIR_ENV_VAR, dir.to_str().unwrap())]
 	}
 
 	#[test]
@@ -623,7 +623,8 @@ mod tests {
 	fn relative_template_directory_resolves_against_host_cwd() {
 		let (_dir, root) = canonical_tempdir();
 		std::fs::create_dir(root.join("nested")).unwrap();
-		let (code, stdout, stderr) = run_in(root.clone(), &[], &["nested/foo.XXXX"]);
+		let template = Path::new("nested").join("foo.XXXX");
+		let (code, stdout, stderr) = run_in(root.clone(), &[], &[template.to_str().unwrap()]);
 		assert_eq!(code, 0);
 		assert_eq!(stderr, "");
 		let printed = PathBuf::from(stdout.trim_end_matches('\n'));
@@ -743,9 +744,13 @@ mod tests {
 			run_in(root, &[], &["-p", "missing-dir", "foo.XXXX"]);
 		assert_eq!(code, 1);
 		assert_eq!(stdout, "");
+		let template = Path::new("missing-dir").join("foo.XXXX");
 		assert_eq!(
 			stderr,
-			"mktemp: failed to create file via template 'missing-dir/foo.XXXX': No such file or directory\n"
+			format!(
+				"mktemp: failed to create file via template '{}': No such file or directory\n",
+				template.display()
+			)
 		);
 	}
 

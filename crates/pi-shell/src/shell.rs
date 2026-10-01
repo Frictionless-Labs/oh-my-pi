@@ -632,10 +632,10 @@ fn inherited_env_value<'a>(key: &str, value: &'a str) -> std::borrow::Cow<'a, st
 	if !matches!(key, "TEMP" | "TMP" | "TMPDIR") || !path.is_absolute() {
 		return std::borrow::Cow::Borrowed(value);
 	}
-	match brush_core::sys::fs::expand_to_long_path(path)
-		.into_os_string()
-		.into_string()
-	{
+	let normalized = brush_core::sys::fs::expand_to_long_path(path)
+		.components()
+		.collect::<std::path::PathBuf>();
+	match normalized.into_os_string().into_string() {
 		Ok(expanded) => std::borrow::Cow::Owned(expanded),
 		Err(_) => std::borrow::Cow::Borrowed(value),
 	}
@@ -4527,7 +4527,8 @@ mod tests {
 		assert_eq!(exit_code(&exec), 0, "rg recursive search should match");
 		let out = read("rg.txt");
 		assert!(out.contains("data.txt:needle"), "rg missed visible file: {out:?}");
-		assert!(out.contains("sub/nested.txt:needle"), "rg missed nested file: {out:?}");
+		let nested = format!("sub{}nested.txt:needle", std::path::MAIN_SEPARATOR);
+		assert!(out.contains(&nested), "rg missed nested file: {out:?}");
 		assert!(!out.contains(".hidden.txt"), "rg searched hidden file by default: {out:?}");
 		assert!(!out.contains("ignored.log"), "rg ignored .gitignore by default: {out:?}");
 		assert!(!out.contains("binary.bin"), "rg printed binary file by default: {out:?}");

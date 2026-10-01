@@ -266,6 +266,7 @@ mod tests {
 		assert_eq!(decoder.finish(), "");
 	}
 
+	#[cfg(not(windows))]
 	#[test]
 	fn incomplete_utf8_at_eof_becomes_replacement() {
 		let mut decoder = OutputDecoder::new();

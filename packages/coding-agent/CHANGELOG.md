@@ -5,6 +5,7 @@
 ### Fixed
 
 - Fixed managed JavaScript eval environments loading undeclared packages from Bun's global package cache.
+- Fixed Windows shell path handling for temporary directories, ripgrep separators, byte counts from positioned files, and edit-path recovery.
 
 ## [18.4.6] - 2026-10-01
 

@@ -177,8 +177,7 @@ impl PathPolicy {
 		if normalized.is_empty() {
 			return None;
 		}
-		let escaped = escape_glob_metachars(normalized);
-		let glob = pi_walker::CompiledWalkGlob::new([format!("**/{escaped}")]).ok()?;
+		let suffix = format!("/{normalized}");
 		let started = Instant::now();
 		let request = pi_walker::WalkRequest::new(&self.cwd)
 			.hidden(true)
@@ -186,22 +185,35 @@ impl PathPolicy {
 			.skip_git(true)
 			.skip_node_modules(false)
 			.emit_root(false)
-			.cache(false)
-			.limit(2)
-			.filter(pi_walker::WalkFilter::all().glob(glob));
-		let result = request
-			.collect_with_heartbeat(|| {
-				if started.elapsed() >= Duration::from_secs(5) {
-					Err("workspace suffix search timed out")
-				} else {
-					Ok(())
-				}
-			})
+			.cache(false);
+		let mut matches = Vec::with_capacity(2);
+		request
+			.for_each_entry_with_heartbeat(
+				|| {
+					if started.elapsed() >= Duration::from_secs(5) {
+						Err("workspace suffix search timed out")
+					} else {
+						Ok(())
+					}
+				},
+				|entry| {
+					if entry.file_type == pi_walker::FileType::File
+						&& (entry.relative_path == normalized || entry.relative_path.ends_with(&suffix))
+					{
+						matches.push(entry.relative_path.to_owned());
+						if matches.len() == 2 {
+							return Ok(pi_walker::WalkDecision::Stop);
+						}
+					}
+					Ok(pi_walker::WalkDecision::Include)
+				},
+				|_| Ok(pi_walker::WalkDecision::Include),
+			)
 			.ok()?;
-		if result.entries.len() != 1 {
+		if matches.len() != 1 {
 			return None;
 		}
-		let display = result.entries.into_iter().next()?.path;
+		let display = matches.pop()?;
 		Some(Resolved { absolute: self.cwd.join(&display), display })
 	}
 
@@ -530,20 +542,6 @@ fn is_within(path: &Path, root: &Path) -> bool {
 	path == root || path.starts_with(root)
 }
 
-fn escape_glob_metachars(value: &str) -> String {
-	let mut out = String::with_capacity(value.len());
-	for c in value.chars() {
-		if matches!(c, '*' | '?' | '[' | '{') {
-			out.push('[');
-			out.push(c);
-			out.push(']');
-		} else {
-			out.push(c);
-		}
-	}
-	out
-}
-
 /// Basenames that only generators produce; these block without inspecting
 /// content. Ambiguous names such as `generated.go` are left to the content
 /// marker check instead.
@@ -706,10 +704,12 @@ mod tests {
 		assert_eq!(p.resolve("/", &urls).unwrap().absolute, tmp.path());
 		assert_eq!(p.resolve("@~/x", &urls).unwrap().absolute, tmp.path().join("home/x"));
 		assert_eq!(p.resolve(":./x", &urls).unwrap().absolute, tmp.path().join("./x"));
-		assert_eq!(
-			p.resolve("file:///tmp/a%20b", &urls).unwrap().absolute,
+		let file_url_path = if cfg!(windows) {
+			PathBuf::from(r"C:\tmp\a b")
+		} else {
 			PathBuf::from("/tmp/a b")
-		);
+		};
+		assert_eq!(p.resolve("file:///tmp/a%20b", &urls).unwrap().absolute, file_url_path);
 		// Scheme-colon names without a slash, Windows drives, and `./`-prefixed
 		// URI-shaped names are plain paths.
 		assert_eq!(p.resolve("sbx:x", &urls).unwrap().absolute, tmp.path().join("sbx:x"));
@@ -981,11 +981,9 @@ mod tests {
 	fn canonicalizes_existing_parent() {
 		let tmp = tempfile::tempdir().unwrap();
 		let missing = tmp.path().join("missing.txt");
-		assert_eq!(
-			canonical_key(&missing),
-			std::fs::canonicalize(tmp.path())
-				.unwrap()
-				.join("missing.txt")
-		);
+		let expected = std::fs::canonicalize(tmp.path())
+			.unwrap()
+			.join("missing.txt");
+		assert_eq!(canonical_key(&missing), strip_windows_verbatim_path(expected));
 	}
 }
