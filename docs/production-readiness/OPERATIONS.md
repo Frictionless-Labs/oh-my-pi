@@ -35,10 +35,13 @@ dependencies.
 `Open-Pi.command` refuses to launch unless all of these are true:
 
 - The canonical checkout is clean `main` at the owner-only approved SHA.
+- The `origin` remote is the verified `Frictionless-Labs/oh-my-pi` HTTPS URL.
 - Bun is at least 1.4 and locked dependencies/native/generated assets exist.
-- Ollama cloud is disabled and the server listens only on loopback.
+- Ollama is exactly 0.35.0, its live status reports cloud disabled, and every
+  port 11434 listener is the approved IPv4 loopback address.
 - The exact approved model digest is installed.
-- The isolated profile exposes only the approved Ollama model.
+- The isolated profile has no provider override, exposes only the approved
+  Ollama model, and model discovery is forced to the loopback endpoint.
 - Telemetry export is disabled before the CLI starts.
 
 The tracked launcher and Desktop copy must remain byte-identical. Operational
@@ -52,8 +55,11 @@ credentials, or repository contents.
 2. Merge through the active `main` ruleset without force or history rewrite.
 3. Verify the merged SHA, create the annotated fork tag, and build binaries
    with `bun scripts/ci-release-build-binaries.ts` only.
-4. Generate checksums, CycloneDX SBOM, release notes, and a provenance manifest
-   that all identify the merged SHA.
+4. Generate checksums, release notes, and a provenance manifest that all
+   identify the merged SHA. Generate the CycloneDX SBOM with
+   `scripts/production-readiness/generate-sbom.ts`; it reconciles Syft output
+   against every external Bun lock record, including optional and development
+   dependencies.
 5. Create the GitHub Release and verify every downloaded asset checksum.
 6. Write the exact merged SHA to the owner-only local approved-SHA file.
 7. Rebuild the canonical checkout and run the Terminal and Finder launcher

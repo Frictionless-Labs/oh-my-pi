@@ -300,3 +300,22 @@ Append-only evidence for the production-readiness run against the public
 | Follow-up | Push the exact candidate and require all 15 strict hosted contexts to succeed on its SHA. |
 | Reviewer | Executor |
 | Secrets check | PASS — only public CI diagnostics and path-shape values were retained. |
+
+## 2026-10-01T20:11:59Z — Phase 11 independent review remediation
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-01T20:11:59Z` |
+| Phase | `11` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| HEAD reviewed | `7d39995abc6e1429cb4c51262674692ff400de0c` |
+| Command | Independent read-only whole-branch review; focused RED/GREEN tests; repaired Gitleaks canary; Rust, script, type, format, and SBOM/Grype verification |
+| Exit code | `0` for repaired local gates; prior review classified release `BLOCK_RELEASE` |
+| Output evidence | Review found malformed Gitleaks rule scoping, launcher endpoint/cloud/version/listener/origin gaps, path-filtered required Nix checks, incomplete Bun lock coverage in the SBOM, and a suffix-recovery symlink regression. Focused tests now pass: launcher faults 7/7, SBOM reconciliation 2/2, scripts 46/46, Rust 3,061 passed and 5 skipped plus doctests, and `bun check`. Reconciled candidate SBOM includes all 565 external Bun lock records and passes Grype 0.119.0 at the Medium threshold. |
+| Files changed | Gitleaks policy; CI/Nix workflows; launcher and fault tests; suffix recovery test/implementation; SBOM generator/tests; production-readiness evidence. |
+| Classification | `FIX_NOW` locally; `PROVE_NOW` on the final committed SHA and hosted checks |
+| Follow-up | Commit and push focused repairs, then require every strict hosted context and the repaired redacted scans on the exact candidate SHA. |
+| Reviewer | Independent Codex reviewer plus executor remediation |
+| Secrets check | PASS — unrelated private-key canary remained detected inside a generic-key allowlisted path; the canary was synthetic and temporary. |

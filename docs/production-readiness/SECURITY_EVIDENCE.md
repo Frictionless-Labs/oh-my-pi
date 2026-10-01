@@ -21,16 +21,16 @@ the candidate SHA with the merged SHA before publication.
 
 | Gate | Result | Same-run evidence |
 |---|---|---|
-| Full Git history | PASS | Gitleaks 8.30.1 scanned 28,443 commits and 540.48 MB; no leaks found. |
-| Candidate working tree | PASS | Gitleaks directory scan covered 178.07 MB; no leaks found. |
-| Candidate patch | PASS | Gitleaks stdin scan covered the 119.94 KB redacted binary diff; no leaks found. |
+| Full Git history | PENDING | The Gitleaks allowlist parser defect is repaired; rerun the redacted scan on the final candidate SHA before merge. |
+| Candidate working tree | PENDING | Rerun after the final candidate commit with the repaired Gitleaks policy. |
+| Candidate patch | PENDING | Rerun after the final candidate commit with the repaired Gitleaks policy. |
 | JavaScript vulnerabilities | PASS | `bun audit --audit-level=high` reported no vulnerabilities. |
 | Rust vulnerabilities | PASS | `cargo audit` reported zero vulnerabilities and four maintenance warnings. |
 | Rust policy | PASS | `cargo deny check` reported advisories, bans, licenses, and sources all OK. |
 | Python vulnerabilities | PASS | pip-audit 2.10.1 reported no known vulnerabilities for 32 third-party distributions; the two editable local packages were intentionally skipped. |
-| Cross-ecosystem scan | PASS | Grype 0.119.0 found no vulnerabilities in the CycloneDX SBOM at the Medium threshold. |
-| Static analysis | CONFIGURED | CodeQL v4.38.2 uses `security-extended` for Actions, JavaScript/TypeScript, Python, and Rust. Hosted conclusions remain required before release. |
-| SBOM | PASS | `SBOM.json` is CycloneDX with 1,921 components; SHA-256 `9cf57d033105eb0d3d635eb59e1b0280b09f6e88ab26bb41e8fe1958ced78138`. |
+| Cross-ecosystem scan | PENDING | The reconciled candidate SBOM passed Grype 0.119.0 at the Medium threshold; repeat on the merged SHA. |
+| Static analysis | PENDING | CodeQL v4.38.2 uses `security-extended` for Actions, JavaScript/TypeScript, Python, and Rust; require all hosted conclusions on the final candidate. |
+| SBOM | PENDING | The generator augments Syft with all 565 external Bun lock records; regenerate `SBOM.json` on the merged SHA. |
 
 ## Adjudicated Rust maintenance warnings
 
@@ -50,9 +50,10 @@ vulnerabilities or maintenance advisories.
 The initial history scan reported 168 candidate detections across 66 commits.
 Review classified them as public protocol identifiers, generated catalog model
 IDs, synthetic credential fixtures, scanner signatures, or public debug key
-material. `.gitleaks.toml` contains rule-and-path-scoped exceptions for current
-content; `.gitleaksignore` records exact historical fingerprints. No detector
-is disabled globally.
+material. `.gitleaks.toml` uses Gitleaks 8.30.1's `targetRules` key for
+rule-and-path-scoped exceptions; an unrelated private-key canary under an
+allowlisted catalog path remains detected. `.gitleaksignore` records exact
+historical fingerprints. No detector is disabled globally.
 
 ## License inventory
 
@@ -78,15 +79,18 @@ license and dynamic-linking replacement terms if distributed.
 - macOS release binaries are ad-hoc signed by the repository build script.
   They are not represented as Developer ID notarized artifacts.
 - The Desktop launcher is local source, byte-matched to the tracked launcher,
-  owner-executable only, and fail-closed on repository SHA, model digest,
-  loopback binding, cloud disablement, and clean-tree checks.
+  owner-executable only, and fail-closed on repository origin and SHA, model
+  digest, exact Ollama version, live cloud status, loopback-only listeners,
+  provider overrides, and clean-tree checks.
 
 ## Network and telemetry boundary
 
 The isolated `frictionless-local` profile exposes exactly one model:
 `ollama/qwen3-coder:30b`. Ollama cloud is disabled in server configuration and
-through `OLLAMA_NO_CLOUD=1`; the launcher binds the server to
-`127.0.0.1:11434` and exports `OTEL_SDK_DISABLED=true`. A sandboxed runtime
+through `OLLAMA_NO_CLOUD=1`; the launcher also requires the daemon's live
+`/api/status` response to report cloud disabled. It requires every port 11434
+listener and every effective Ollama client endpoint to be
+`127.0.0.1:11434`, and exports `OTEL_SDK_DISABLED=true`. A sandboxed runtime
 test denied external DNS/network access while preserving loopback inference.
 
 ## Historical documentation checks
