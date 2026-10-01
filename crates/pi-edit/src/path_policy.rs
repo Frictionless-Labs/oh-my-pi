@@ -196,9 +196,7 @@ impl PathPolicy {
 					}
 				},
 				|entry| {
-					if entry.file_type == pi_walker::FileType::File
-						&& Self::path_has_component_suffix(entry.relative_path, normalized)
-					{
+					if Self::path_has_component_suffix(entry.relative_path, normalized) {
 						matches.push(entry.relative_path.to_owned());
 						if matches.len() == 2 {
 							return Ok(pi_walker::WalkDecision::Stop);
@@ -936,6 +934,23 @@ mod tests {
 		assert_eq!(p.recover_missing("src/a.ts").unwrap().display, "deep/src/a.ts");
 		std::fs::create_dir_all(tmp.path().join("other/src")).unwrap();
 		std::fs::write(tmp.path().join("other/src/a.ts"), "").unwrap();
+		assert!(p.recover_missing("src/a.ts").is_none());
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn symlink_suffixes_preserve_recovery_ambiguity() {
+		let tmp = tempfile::tempdir().unwrap();
+		let p = policy(tmp.path());
+		std::fs::create_dir_all(tmp.path().join("real/src")).unwrap();
+		std::fs::create_dir_all(tmp.path().join("linked/src")).unwrap();
+		std::fs::write(tmp.path().join("real/src/a.ts"), "").unwrap();
+		std::os::unix::fs::symlink(
+			tmp.path().join("real/src/a.ts"),
+			tmp.path().join("linked/src/a.ts"),
+		)
+		.unwrap();
+
 		assert!(p.recover_missing("src/a.ts").is_none());
 	}
 
