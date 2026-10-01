@@ -1261,8 +1261,8 @@ mod tests {
 		assert_eq!(stderr, "");
 		assert!(stdout.contains("Only in a: only.txt\n"), "got: {stdout}");
 		assert!(stdout.contains("Only in b: other.txt\n"), "got: {stdout}");
-		let a_inner = Path::new("a").join("sub/inner.txt");
-		let b_inner = Path::new("b").join("sub/inner.txt");
+		let a_inner = Path::new("a").join("sub").join("inner.txt");
+		let b_inner = Path::new("b").join("sub").join("inner.txt");
 		assert!(
 			stdout.contains(&format!(
 				"diff -r {} {}\n1c1\n< old\n---\n> new\n",

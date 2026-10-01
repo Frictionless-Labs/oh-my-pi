@@ -177,7 +177,7 @@ impl PathPolicy {
 		if normalized.is_empty() {
 			return None;
 		}
-		let suffix = format!("/{normalized}");
+		let normalized_path = Path::new(normalized);
 		let started = Instant::now();
 		let request = pi_walker::WalkRequest::new(&self.cwd)
 			.hidden(true)
@@ -198,7 +198,7 @@ impl PathPolicy {
 				},
 				|entry| {
 					if entry.file_type == pi_walker::FileType::File
-						&& (entry.relative_path == normalized || entry.relative_path.ends_with(&suffix))
+						&& Path::new(&entry.relative_path).ends_with(normalized_path)
 					{
 						matches.push(entry.relative_path.to_owned());
 						if matches.len() == 2 {

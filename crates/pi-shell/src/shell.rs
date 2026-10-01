@@ -632,10 +632,10 @@ fn inherited_env_value<'a>(key: &str, value: &'a str) -> std::borrow::Cow<'a, st
 	if !matches!(key, "TEMP" | "TMP" | "TMPDIR") || !path.is_absolute() {
 		return std::borrow::Cow::Borrowed(value);
 	}
-	let normalized = brush_core::sys::fs::expand_to_long_path(path)
-		.components()
-		.collect::<std::path::PathBuf>();
-	match normalized.into_os_string().into_string() {
+	match brush_core::sys::fs::expand_to_long_path(path)
+		.into_os_string()
+		.into_string()
+	{
 		Ok(expanded) => std::borrow::Cow::Owned(expanded),
 		Err(_) => std::borrow::Cow::Borrowed(value),
 	}
