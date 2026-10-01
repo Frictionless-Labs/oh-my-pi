@@ -31,6 +31,11 @@ export interface AugmentedSbom extends CycloneDxSbom {
 	addedPackageCount: number;
 }
 
+export interface ValidatedSbomPaths {
+	source: string;
+	output: string;
+}
+
 interface PackageIdentity {
 	name: string;
 	version: string;
@@ -151,6 +156,15 @@ export function augmentSbomWithBunLock(sbomInput: unknown, lockInput: unknown): 
 	return { ...sbom, lockPackageCount: identities.length, addedPackageCount };
 }
 
+export function validateSbomPaths(sourceInput: string, outputInput: string): ValidatedSbomPaths {
+	const source = path.resolve(sourceInput);
+	const output = path.resolve(outputInput);
+	if (output === source || output.startsWith(`${source}${path.sep}`)) {
+		throw new Error("SBOM output must be outside the scanned source directory");
+	}
+	return { source, output };
+}
+
 function argument(name: string): string | undefined {
 	const index = process.argv.indexOf(name);
 	return index >= 0 ? process.argv[index + 1] : undefined;
@@ -168,6 +182,7 @@ async function main(): Promise<void> {
 		);
 	}
 
+	const paths = validateSbomPaths(source, output);
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-sbom-"));
 	const baseSbom = path.join(tempDir, "syft.cdx.json");
 	try {
@@ -175,7 +190,7 @@ async function main(): Promise<void> {
 			[
 				syft,
 				"scan",
-				`dir:${path.resolve(source)}`,
+				`dir:${paths.source}`,
 				"--source-name",
 				sourceName,
 				"--source-version",
@@ -192,10 +207,10 @@ async function main(): Promise<void> {
 		}
 
 		const sbom = (await Bun.file(baseSbom).json()) as unknown;
-		const lock = Bun.JSON5.parse(await Bun.file(path.join(source, "bun.lock")).text()) as unknown;
+		const lock = Bun.JSON5.parse(await Bun.file(path.join(paths.source, "bun.lock")).text()) as unknown;
 		const augmented = augmentSbomWithBunLock(sbom, lock);
 		const { lockPackageCount, addedPackageCount, ...document } = augmented;
-		await Bun.write(path.resolve(output), `${JSON.stringify(document, null, 2)}\n`);
+		await Bun.write(paths.output, `${JSON.stringify(document, null, 2)}\n`);
 		console.log(
 			`Generated ${document.components.length} components with ${lockPackageCount} Bun lock records (${addedPackageCount} added).`,
 		);

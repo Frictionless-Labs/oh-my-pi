@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { augmentSbomWithBunLock } from "./generate-sbom";
+import { augmentSbomWithBunLock, validateSbomPaths } from "./generate-sbom";
 
 describe("release SBOM Bun lock reconciliation", () => {
 	test("adds nested and aliased lock records missing from the scanner inventory", () => {
@@ -49,5 +49,15 @@ describe("release SBOM Bun lock reconciliation", () => {
 				{ lockfileVersion: 1, packages: { broken: ["missing-version-delimiter"] } },
 			),
 		).toThrow("Unsupported bun.lock package identity");
+	});
+
+	test("rejects output inside the source tree to prevent prior-SBOM self-ingestion", () => {
+		expect(() => validateSbomPaths("/tmp/source", "/tmp/source/release/SBOM.json")).toThrow(
+			"outside the scanned source directory",
+		);
+		expect(validateSbomPaths("/tmp/source", "/tmp/release/SBOM.json")).toEqual({
+			source: "/tmp/source",
+			output: "/tmp/release/SBOM.json",
+		});
 	});
 });

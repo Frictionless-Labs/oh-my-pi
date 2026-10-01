@@ -59,7 +59,8 @@ credentials, or repository contents.
    identify the merged SHA. Generate the CycloneDX SBOM with
    `scripts/production-readiness/generate-sbom.ts`; it reconciles Syft output
    against every external Bun lock record, including optional and development
-   dependencies.
+   dependencies. Scan a fresh exact-SHA `git archive` directory and write the
+   SBOM outside that directory so prior output cannot enter the inventory.
 5. Create the GitHub Release and verify every downloaded asset checksum.
 6. Write the exact merged SHA to the owner-only local approved-SHA file.
 7. Rebuild the canonical checkout and run the Terminal and Finder launcher
