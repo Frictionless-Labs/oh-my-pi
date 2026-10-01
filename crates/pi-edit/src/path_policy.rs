@@ -313,9 +313,9 @@ impl PathPolicy {
 		if !matches!(self.address(unwrap_hashline_header_path(authored)), Address::Path) {
 			return false;
 		}
-		let recovered = lexical_absolute(recovered, &self.cwd);
-		is_within(&recovered, &lexical_absolute(&self.cwd, &self.cwd))
-			|| self.in_plan_writable_root(&recovered)
+		let recovered = strip_windows_verbatim_path(lexical_absolute(recovered, &self.cwd));
+		let cwd = strip_windows_verbatim_path(lexical_absolute(&self.cwd, &self.cwd));
+		is_within(&recovered, &cwd) || self.in_plan_writable_root(&recovered)
 	}
 
 	/// Return the model-facing generated-file rejection, when applicable.
