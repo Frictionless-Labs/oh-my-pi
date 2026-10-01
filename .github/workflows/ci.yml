@@ -74,6 +74,9 @@ jobs:
         run: bun --cwd=packages/natives run build
       - name: Exercise CLI worker hosts
         run: bun run ci:test:smoke
+      - name: Exercise macOS production launcher faults
+        if: runner.os == 'macOS'
+        run: bun test scripts/production-readiness/Open-Pi.test.ts
 
   install_methods:
     name: Install methods (${{ matrix.os }})
