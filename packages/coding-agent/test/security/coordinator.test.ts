@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -40,9 +40,7 @@ const gitAdapter: SecurityGitAdapter = {
 	untracked: async () => [],
 };
 
-// Credentials and the bundled-model view are immutable fixtures. Keep their SQLite
-// store and registry for the suite; repository/store state remains fresh per test.
-beforeAll(async () => {
+beforeEach(async () => {
 	registryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "omp-security-coordinator-auth-"));
 	credentialStore = await SqliteAuthCredentialStore.open(path.join(registryRoot, "agent.db"));
 	authStorage = new AuthStorage(credentialStore);
@@ -60,9 +58,6 @@ beforeAll(async () => {
 	if (!account) throw new Error("expected fixture OAuth account");
 	credentialId = account.credentialId;
 	modelRegistry = new ModelRegistry(authStorage, path.join(registryRoot, "models.yml"));
-});
-
-beforeEach(async () => {
 	temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "omp-security-coordinator-"));
 	repositoryRoot = path.join(temporaryRoot, "repo");
 	stateRoot = path.join(temporaryRoot, "state");
@@ -76,12 +71,9 @@ afterEach(async () => {
 	vi.restoreAllMocks();
 	unregisterCustomApis(MOCK_SOURCE_ID);
 	settings.cancelPendingSaves();
-	await fs.rm(temporaryRoot, { recursive: true, force: true });
-});
-
-afterAll(async () => {
 	credentialStore?.close();
 	credentialStore = null;
+	await fs.rm(temporaryRoot, { recursive: true, force: true });
 	await fs.rm(registryRoot, { recursive: true, force: true });
 });
 

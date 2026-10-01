@@ -27,8 +27,14 @@ async function launchWithoutTerminal(
 ): Promise<LaunchRun> {
 	const home = tempDir.join("home");
 	fs.mkdirSync(home, { recursive: true });
+	await Bun.write(
+		path.join(home, ".omp", "agent", "config.yml"),
+		"disabledProviders:\n  - apple\n  - llama.cpp\n  - lm-studio\n  - ollama\n",
+	);
 	// Isolated home and no credentials: print mode can only end at the headless
 	// "No models available" exit, which the interactive path never reaches.
+	// Disable implicit keyless local providers too: a developer may have one
+	// listening even though this subprocess has no credentials or saved config.
 	const env: Record<string, string | undefined> = { ...process.env, HOME: home, USERPROFILE: home, NO_COLOR: "1" };
 	for (const key of Object.keys(env)) {
 		if (CREDENTIAL_ENV.test(key)) delete env[key];
