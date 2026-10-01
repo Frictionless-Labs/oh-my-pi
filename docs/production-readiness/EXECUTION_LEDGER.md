@@ -205,3 +205,79 @@ Append-only evidence for the production-readiness run against the public
 | Follow-up | Regenerate SBOM/checksum on merged SHA and require hosted CodeQL conclusions. |
 | Reviewer | Executor |
 | Secrets check | PASS — all scanner output redacted; no detector disabled globally. |
+
+## 2026-10-01T15:20:13Z — Phase 9 fork synchronization
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-01T15:20:13Z` |
+| Phase | `9` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi` |
+| Branch | `main` |
+| HEAD | `717f97f4d22b3d65c4a4eef6a744255d46f4d1a6` |
+| Command | Remote identity and ancestry checks; baseline tag push; fast-forward `main` push; remote SHA verification |
+| Exit code | `0` |
+| Output evidence | Remote `main` equals the frozen `v18.4.8` commit; no force push occurred; `frictionless-baseline-20260930` peels to `969a94c1eeccb1b7528cd5621934bca1908ab622`. |
+| Files changed | Remote references only. |
+| Classification | `NO_OP_EVIDENCED` |
+| Follow-up | Require hardened hosted validation on the readiness candidate and merged `main`. |
+| Reviewer | Executor |
+| Secrets check | PASS — remote URLs and object IDs only. |
+
+## 2026-10-01T15:20:13Z — Phase 10 hosted validation repair
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-01T15:20:13Z` |
+| Phase | `10` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| HEAD | `dbd8408b0d9ccd4a972bb1018f2bfc0df4439391` |
+| Command | GitHub Actions and check-run API inspection; exact-SHA reruns; Windows failure-log review; full local Rust regression suite |
+| Exit code | `0` for repaired local suite; prior candidate Windows job `1` |
+| Output evidence | Candidate `8bad613b4e276dbcac75e64d43adfbeeb856d96f` passed Nix, security, CodeQL, Ubuntu install/smoke/Rust, macOS install/smoke/Rust, and exposed six Windows path-contract failures. Commit `dbd8408b0d9ccd4a972bb1018f2bfc0df4439391` repairs all six; local Rust result is 3,059 passed and 5 skipped plus doctests. |
+| Files changed | Windows path handling and portable assertions in `crates/pi-builtins`, `crates/pi-edit`, and `crates/pi-shell`. |
+| Classification | `FIX_NOW` |
+| Follow-up | Require every hosted context green on the latest PR SHA, then repeat hardened workflows on merged `main`. |
+| Reviewer | Executor |
+| Secrets check | PASS — GitHub logs were redacted; no token material retained. |
+
+## 2026-10-01T15:20:13Z — Phase 11 readiness PR and review
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-01T15:20:13Z` |
+| Phase | `11` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| HEAD | `dbd8408b0d9ccd4a972bb1018f2bfc0df4439391` |
+| Command | PR API inspection; full branch diff review; workflow permission and mutation scan; Gitleaks history/tree/patch scans |
+| Exit code | `0` |
+| Output evidence | Draft `PR#1` is mergeable with 10 focused commits and 47 changed files; review found no publication job, private runner, mutable third-party Action ref, workflow secret reference, stray artifact, or live secret. Windows findings were reproduced and corrected before readiness. |
+| Files changed | No review-only mutation; fixes are recorded in their focused commits. |
+| Classification | `PROVE_NOW` |
+| Follow-up | Require latest-SHA hosted success, refresh the redacted patch scan, update the PR evidence, and mark ready. |
+| Reviewer | Executor (Codex independent pass) |
+| Secrets check | PASS — final candidate scan required again immediately before merge. |
+
+## 2026-10-01T15:20:13Z — Phase 12 repository governance
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-01T15:20:13Z` |
+| Phase | `12` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| HEAD | `dbd8408b0d9ccd4a972bb1018f2bfc0df4439391` |
+| Command | GitHub repository, Actions permissions, security settings, and ruleset API configuration and verification |
+| Exit code | `0` |
+| Output evidence | Active `main` ruleset `24312690` requires pull requests, linear history, resolved conversations, 15 exact strict checks, and blocks deletion/non-fast-forward updates. Active release-tag ruleset `24312691` protects `refs/tags/v*+frictionless.*`. Actions are read-only by default with GitHub-owned and two selected third-party families allowed, and GitHub requires immutable SHA pins. Dependency graph, alerts, security updates, secret scanning, push protection, and private vulnerability reporting are enabled. |
+| Files changed | GitHub repository settings only. |
+| Classification | `NO_OP_EVIDENCED` |
+| Follow-up | Verify the rulesets enforce the latest candidate merge and protected release-tag creation. |
+| Reviewer | Executor |
+| Secrets check | PASS — settings payloads contained no credential values. |
