@@ -158,6 +158,9 @@
 - Reduced unnecessary disk writes and improved persistence efficiency across sessions, model data, configuration, and background jobs.
 - Fixed the native composer showing the main session's effort level instead of the selected subagent's level.
 - Fixed the `omp predict` comparison view and MCP authorization prompt rendering with their full native interfaces, including clickable link actions.
+### Fixed
+
+- Fixed managed JavaScript eval environments loading undeclared packages from Bun's global package cache.
 
 ## [18.4.6] - 2026-10-01
 

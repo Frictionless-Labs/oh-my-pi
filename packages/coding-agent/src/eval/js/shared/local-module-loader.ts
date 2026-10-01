@@ -315,6 +315,7 @@ export class LocalModuleLoader {
 
 function buildRequire(fromPath: string, packageRoot: string | undefined): NodeJS.Require {
 	const basePath = path.extname(fromPath) ? fromPath : path.join(fromPath, "[eval]");
+	const baseDir = path.dirname(basePath);
 	const primary = createRequire(pathToFileURL(basePath).href);
 	if (!packageRoot) return primary;
 	const fallback = createRequire(pathToFileURL(path.join(packageRoot, "package.json")).href);
@@ -322,13 +323,13 @@ function buildRequire(fromPath: string, packageRoot: string | undefined): NodeJS
 		if (!isBareSpecifier(id)) return primary(id);
 		let primaryResolutionError: unknown;
 		try {
-			primary.resolve(id);
+			resolveBareSpecifierWithinProject(id, baseDir);
 		} catch (error) {
 			primaryResolutionError = error;
 		}
 		if (!primaryResolutionError) return primary(id);
 		try {
-			fallback.resolve(id);
+			resolveBareSpecifierWithinProject(id, packageRoot, packageRoot);
 		} catch (fallbackError) {
 			throw packageFallbackError(primaryResolutionError, fallbackError, packageRoot);
 		}
@@ -336,11 +337,13 @@ function buildRequire(fromPath: string, packageRoot: string | undefined): NodeJS
 	}) as NodeJS.Require;
 	const resolve = ((id: string, options?: { paths?: string[] }) => {
 		try {
-			return primary.resolve(id, options);
+			if (!isBareSpecifier(id) || options?.paths) return primary.resolve(id, options);
+			return resolveBareSpecifierWithinProject(id, baseDir);
 		} catch (primaryError) {
 			if (!isBareSpecifier(id)) throw primaryError;
 			try {
-				return fallback.resolve(id, options);
+				if (options?.paths) return fallback.resolve(id, options);
+				return resolveBareSpecifierWithinProject(id, packageRoot, packageRoot);
 			} catch (fallbackError) {
 				throw packageFallbackError(primaryError, fallbackError, packageRoot);
 			}
@@ -377,7 +380,7 @@ function resolveImportSpecifier(baseDir: string, source: string, packageRoot: st
 	}
 	if (packageRoot) {
 		try {
-			return resolveBareSpecifierWithinProject(source, packageRoot);
+			return resolveBareSpecifierWithinProject(source, packageRoot, packageRoot);
 		} catch (fallbackError) {
 			throw packageFallbackError(projectError, fallbackError, packageRoot);
 		}
@@ -385,7 +388,7 @@ function resolveImportSpecifier(baseDir: string, source: string, packageRoot: st
 	throw projectError;
 }
 
-function resolveBareSpecifierWithinProject(source: string, baseDir: string): string {
+function resolveBareSpecifierWithinProject(source: string, baseDir: string, boundary?: string): string {
 	const resolved = Bun.resolveSync(source, baseDir);
 	if (!path.isAbsolute(resolved)) {
 		throw new Error(
@@ -396,12 +399,14 @@ function resolveBareSpecifierWithinProject(source: string, baseDir: string): str
 	const packageName = source.startsWith("@") ? segments.slice(0, 2) : segments.slice(0, 1);
 	const target = path.resolve(resolved);
 	let ancestor = path.resolve(baseDir);
+	const normalizedBoundary = boundary ? path.resolve(boundary) : undefined;
 	for (;;) {
 		if (fs.existsSync(path.join(ancestor, "node_modules", ...packageName))) return resolved;
 		const parent = path.dirname(ancestor);
 		if (parent !== ancestor && fs.existsSync(path.join(ancestor, "package.json")) && pathIsWithin(ancestor, target)) {
 			return resolved;
 		}
+		if (ancestor === normalizedBoundary) break;
 		if (parent === ancestor) break;
 		ancestor = parent;
 	}
