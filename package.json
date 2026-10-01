@@ -182,7 +182,9 @@
 		"typescript": "catalog:"
 	},
 	"overrides": {
-		"@ark/schema": "0.56.2"
+		"@ark/schema": "0.56.2",
+		"adm-zip": "0.6.1",
+		"tar": "7.5.22"
 	},
 	"lint-staged": {
 		"packages/*/src/**/*.{ts,tsx}": [

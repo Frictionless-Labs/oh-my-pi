@@ -7,7 +7,16 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
-ignore = []
+# These four RustSec records report maintenance status, not known exploitable
+# vulnerabilities, and each advisory explicitly states that no safe upgrade is
+# available. Keep the exceptions advisory-specific so new vulnerabilities,
+# yanks, and future unmaintained dependencies continue to fail closed.
+ignore = [
+    "RUSTSEC-2024-0320", # yaml-rust 0.4.5 via syntect
+    "RUSTSEC-2024-0436", # paste 1.0.15 via candle/gemm
+    "RUSTSEC-2025-0141", # bincode 1.3.3 via syntect
+    "RUSTSEC-2026-0192", # ttf-parser 0.25.1 via fontdue/pdf-inspector
+]
 
 [licenses]
 version = 2
