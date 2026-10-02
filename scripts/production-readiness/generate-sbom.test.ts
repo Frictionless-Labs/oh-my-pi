@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 
 import { augmentSbomWithBunLock, validateSbomPaths } from "./generate-sbom";
 
@@ -51,13 +54,44 @@ describe("release SBOM Bun lock reconciliation", () => {
 		).toThrow("Unsupported bun.lock package identity");
 	});
 
-	test("rejects output inside the source tree to prevent prior-SBOM self-ingestion", () => {
-		expect(() => validateSbomPaths("/tmp/source", "/tmp/source/release/SBOM.json")).toThrow(
-			"outside the scanned source directory",
-		);
-		expect(validateSbomPaths("/tmp/source", "/tmp/release/SBOM.json")).toEqual({
-			source: "/tmp/source",
-			output: "/tmp/release/SBOM.json",
-		});
+	test("rejects lexical and symlink-aliased output inside the scanned source", async () => {
+		const root = await fs.mkdtemp(path.join(os.tmpdir(), "sbom-path-test-"));
+		try {
+			const source = path.join(root, "source");
+			const sourceAlias = path.join(root, "source-alias");
+			const outside = path.join(root, "release", "SBOM.json");
+			await fs.mkdir(source);
+			await fs.symlink(source, sourceAlias, "dir");
+
+			await expect(validateSbomPaths(source, path.join(source, "release", "SBOM.json"))).rejects.toThrow(
+				"outside the scanned source directory",
+			);
+			await expect(validateSbomPaths(source, path.join(sourceAlias, "release", "SBOM.json"))).rejects.toThrow(
+				"outside the scanned source directory",
+			);
+			const canonicalRoot = await fs.realpath(root);
+			expect(await validateSbomPaths(source, outside)).toEqual({
+				source: path.join(canonicalRoot, "source"),
+				output: path.join(canonicalRoot, "release", "SBOM.json"),
+			});
+		} finally {
+			await fs.rm(root, { recursive: true, force: true });
+		}
+	});
+
+	test("rejects an unresolved output-directory symlink", async () => {
+		const root = await fs.mkdtemp(path.join(os.tmpdir(), "sbom-dangling-path-test-"));
+		try {
+			const source = path.join(root, "source");
+			const danglingOutputDir = path.join(root, "release-alias");
+			await fs.mkdir(source);
+			await fs.symlink(path.join(root, "missing-release"), danglingOutputDir, "dir");
+
+			await expect(validateSbomPaths(source, path.join(danglingOutputDir, "SBOM.json"))).rejects.toThrow(
+				"unresolved symbolic link",
+			);
+		} finally {
+			await fs.rm(root, { recursive: true, force: true });
+		}
 	});
 });
