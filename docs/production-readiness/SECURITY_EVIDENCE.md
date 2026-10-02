@@ -1,36 +1,60 @@
 ---
 title: OH-MY-PI Production Security Evidence
-version: 1.0.0
+version: 1.1.0
 status: candidate
 created_date: 2026-10-01
 tags:
   - oh-my-pi
   - security
   - supply-chain
-confidence: 97
+confidence: 99
 owner: MIKKOH Chen
 ---
 
 # Security Evidence
 
-This evidence applies to the production-readiness candidate based on upstream
-`v18.4.8` at `717f97f4d22b3d65c4a4eef6a744255d46f4d1a6`. Release evidence must replace
-the candidate SHA with the merged SHA before publication.
+This evidence applies to production-readiness candidate
+`e42957edcca44d367951689d52884c723272cd73`, based on upstream `v18.4.8` at
+`717f97f4d22b3d65c4a4eef6a744255d46f4d1a6`. All 15 ruleset-required GitHub
+checks passed on that exact candidate. Release evidence must use the merged SHA
+and externally generated artifacts before publication.
 
 ## Gate results
 
 | Gate | Result | Same-run evidence |
 |---|---|---|
-| Full Git history | PENDING | The Gitleaks allowlist parser defect is repaired; rerun the redacted scan on the final candidate SHA before merge. |
-| Candidate working tree | PENDING | Rerun after the final candidate commit with the repaired Gitleaks policy. |
-| Candidate patch | PENDING | Rerun after the final candidate commit with the repaired Gitleaks policy. |
-| JavaScript vulnerabilities | PASS | `bun audit --audit-level=high` reported no vulnerabilities. |
-| Rust vulnerabilities | PASS | `cargo audit` reported zero vulnerabilities and four maintenance warnings. |
-| Rust policy | PASS | `cargo deny check` reported advisories, bans, licenses, and sources all OK. |
-| Python vulnerabilities | PASS | pip-audit 2.10.1 reported no known vulnerabilities for 32 third-party distributions; the two editable local packages were intentionally skipped. |
-| Cross-ecosystem scan | PENDING | The reconciled candidate SBOM passed Grype 0.119.0 at the Medium threshold; repeat on the merged SHA. |
-| Static analysis | PENDING | CodeQL v4.38.2 uses `security-extended` for Actions, JavaScript/TypeScript, Python, and Rust; require all hosted conclusions on the final candidate. |
-| SBOM | PENDING | The generator augments Syft with all 565 external Bun lock records; regenerate `SBOM.json` on the merged SHA. |
+| Full Git history | PASS | Hosted Gitleaks 8.30.1 scanned 20,957 commits and 323.08 MB at the exact candidate with no leaks; the detector-scope canary produced the required finding. |
+| Candidate committed tree | PASS | The exact candidate is included in the hosted full-history scan; GitHub Actions checked out the committed tree with full history. |
+| Candidate patch | PASS | Every candidate commit from the frozen base through the exact head is included in the same full-history scan. |
+| JavaScript vulnerabilities | PASS | Hosted `bun audit --audit-level=high` reported no vulnerabilities across 516 packages. |
+| Rust vulnerabilities | PASS | Hosted `cargo audit` reported zero vulnerabilities and four adjudicated maintenance warnings. |
+| Rust policy | PASS | Hosted `cargo deny check` reported advisories, bans, licenses, and sources all OK. |
+| Python vulnerabilities | PASS | Hosted pip-audit 2.10.1 reported no known vulnerabilities; editable local packages were intentionally skipped. |
+| Cross-ecosystem scan | PASS | A fresh external SBOM for the exact candidate passed Grype 0.119.0 with `--fail-on medium --only-fixed`: no vulnerabilities found. |
+| Static analysis | PASS | CodeQL v4.38.2 `security-extended` passed for Actions, JavaScript/TypeScript, Python, and Rust on the exact candidate. |
+| Candidate SBOM | PASS | A fresh `git archive` scan produced 2,177 components and reconciled all 565 external Bun lock records. SHA-256: `fa0b35cac0531ca694ee021c53224d06186155d593d74794316f7c092e5c269b`. |
+
+The exact-candidate SBOM is retained outside the scanned source at
+`/tmp/omp-e429-sbom.kSCplu/SBOM.json`. The tracked
+`docs/production-readiness/SBOM.json` is a 1,921-component snapshot generated
+at `2026-10-01T10:01:12-04:00`; it is not exact-current evidence. A tracked
+SBOM cannot attest to the commit that contains itself because committing it
+changes the commit identity. The release authority is therefore an SBOM
+generated outside a fresh archive of the merged SHA and published as a GitHub
+Release asset with checksums and provenance.
+
+## Hosted and governance evidence
+
+| Control | Exact result |
+|---|---|
+| Required checks | 15/15 ruleset-required contexts passed on the candidate SHA. |
+| Rust matrix | Ubuntu 3,083 passed/6 skipped; macOS 3,061 passed/5 skipped; Windows 2,814 passed/4 skipped; doctest passes completed. |
+| Script suite | Ubuntu ran 47 tests across seven files: 40 passed, seven macOS-only launcher tests skipped, zero failed. |
+| Repository alerts | At 2026-10-02T18:47:03Z, open CodeQL, Dependabot, and secret-scanning alerts were each zero. |
+| Review state | PR#1 had zero reviews, zero review threads, and zero issue comments. Automated qualification is not human review. |
+| Repository visibility | Public; there were no GitHub Releases or deployments at 2026-10-02T18:47:03Z. The runtime is local-only, not the repository or future release. |
+| Main ruleset | Active ruleset `24312690` requires strict, up-to-date success for 15 contexts and permits squash or rebase merges. |
+| Release-tag ruleset | Active ruleset `24312691` protects `v*+frictionless.*` creation, update, and deletion; organization administrators can bypass it. |
 
 ## Adjudicated Rust maintenance warnings
 

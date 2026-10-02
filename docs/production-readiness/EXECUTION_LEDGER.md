@@ -319,3 +319,23 @@ Append-only evidence for the production-readiness run against the public
 | Follow-up | Commit and push focused repairs, then require every strict hosted context and the repaired redacted scans on the exact candidate SHA. |
 | Reviewer | Independent Codex reviewer plus executor remediation |
 | Secrets check | PASS — unrelated private-key canary remained detected inside a generic-key allowlisted path; the canary was synthetic and temporary. |
+
+## 2026-10-02T18:47:03Z — Phase 12 durable evidence reconciliation
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-02T18:47:03Z` |
+| Phase | `12` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| HEAD verified | `e42957edcca44d367951689d52884c723272cd73` |
+| Command | Live PR/ruleset/alert audit; exact hosted-log reconciliation; fresh `git archive`; external Syft 1.52.0 SBOM augmentation; Grype 0.119.0 `--fail-on medium --only-fixed` |
+| Exit code | `0` for the final evidence commands; an initial disposable archive attempt failed because its source directory was absent, and the first retry found Bun missing from `PATH` before the explicit installed binary was used. |
+| Output evidence | PR#1 remained Draft with zero reviews, threads, and comments. All 15 required contexts passed on the predecessor candidate. Hosted script result was 40 passed/7 macOS-only skipped across seven files. Hosted Rust results were Ubuntu 3,083/6, macOS 3,061/5, and Windows 2,814/4. A fresh exact-candidate external SBOM contained 2,177 components and all 565 Bun lock records; Grype found no fixed Medium-or-higher vulnerabilities. Open CodeQL, Dependabot, and secret-scanning alerts were each zero. |
+| SBOM classification | The tracked 1,921-component SBOM is a historical snapshot, not exact-current evidence. Exact merged-SHA authority must be generated outside the archive and published as a checksummed GitHub Release asset. |
+| Governance classification | Active rulesets exist out of band; PR#1 does not add them. The public repository has no releases or deployments. GitHub Discussions is disabled, and no retained proof of required prior Discord discussion was found. |
+| Classification | `FIX_NOW` durable evidence repaired locally; `PROVE_NOW` successor-SHA hosted checks; `BLOCK_RELEASE` human review, hands-on testing, contributor sentence, prior-discussion proof or maintainer waiver, merged-SHA SBOM, launcher canaries, and rollback qualification. |
+| Files changed | `docs/production-readiness/SECURITY_EVIDENCE.md`; `docs/production-readiness/EXECUTION_LEDGER.md` |
+| Reviewer | Executor; independent whole-branch review pending on the successor SHA. |
+| Secrets check | PASS — only public repository metadata, test totals, digests, and redacted scanner results were retained. |
