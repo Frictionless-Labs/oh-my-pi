@@ -13,15 +13,16 @@ owner: MIKKOH Chen
 
 # Security Evidence
 
-This evidence applies to production-readiness candidate
+This evidence applies to the last code-bearing production-readiness candidate
 `e42957edcca44d367951689d52884c723272cd73`, based on upstream `v18.4.8` at
 `717f97f4d22b3d65c4a4eef6a744255d46f4d1a6`. All 15 ruleset-required GitHub
-checks passed on that exact candidate. Release evidence must use the merged SHA
-and externally generated artifacts before publication.
+checks passed on that exact predecessor. Its evidence-only descendants require
+fresh hosted qualification recorded outside their own Git trees. Release
+evidence must use the merged SHA and externally generated artifacts.
 
 ## Gate results
 
-| Gate | Result | Same-run evidence |
+| Gate | Result | Evidence |
 |---|---|---|
 | Full Git history | PASS | Hosted Gitleaks 8.30.1 scanned 20,957 commits and 323.08 MB at the exact candidate with no leaks; the detector-scope canary produced the required finding. |
 | Candidate committed tree | PASS | The exact candidate is included in the hosted full-history scan; GitHub Actions checked out the committed tree with full history. |
@@ -47,7 +48,7 @@ Release asset with checksums and provenance.
 
 | Control | Exact result |
 |---|---|
-| Required checks | 15/15 ruleset-required contexts passed on the candidate SHA. |
+| Required checks | 15/15 ruleset-required contexts passed on predecessor `e42957edcca44d367951689d52884c723272cd73`; the current evidence-only descendant requires its own external check record. |
 | Rust matrix | Ubuntu 3,083 passed/6 skipped; macOS 3,061 passed/5 skipped; Windows 2,814 passed/4 skipped; doctest passes completed. |
 | Script suite | Ubuntu ran 47 tests across seven files: 40 passed, seven macOS-only launcher tests skipped, zero failed. |
 | Repository alerts | At 2026-10-02T18:47:03Z, open CodeQL, Dependabot, and secret-scanning alerts were each zero. |
@@ -55,6 +56,9 @@ Release asset with checksums and provenance.
 | Repository visibility | Public; there were no GitHub Releases or deployments at 2026-10-02T18:47:03Z. The runtime is local-only, not the repository or future release. |
 | Upstream drift | Upstream published `v18.4.12` at commit `7318a70cf4ed04133366884d2723f72d9d490a15` on 2026-10-02; this candidate remains intentionally frozen at `v18.4.8`. Release approval must explicitly accept the frozen base or requalify a new base. |
 | Publication boundary | Inherited npm publication scripts remain in the repository. PR#1 does not invoke or authorize them, and the operating runbook forbids `bun run release`; this is an operational exclusion, not code removal. |
+| Local operational state | At 2026-10-02T18:55:29Z, canonical `main` was clean at the frozen base and the profile configuration existed, but Ollama, its port 11434 listener, the approved-SHA file, and the Desktop launcher were absent. Final runtime canaries and Finder acceptance are blocked. |
+| Drift monitor | The workflow exists only on the PR branch and is not listed by GitHub Actions on default `main`; scheduled drift detection is unproved until merge and its first successful run. |
+| Actions policy | Selected external owners only, SHA pinning required, read-only default workflow permissions, and Actions may not approve PRs. |
 | Main ruleset | Active ruleset `24312690` requires strict, up-to-date success for 15 contexts and permits squash or rebase merges. |
 | Release-tag ruleset | Active ruleset `24312691` protects `v*+frictionless.*` creation, update, and deletion; organization administrators can bypass it. |
 
@@ -98,26 +102,25 @@ license and dynamic-linking replacement terms if distributed.
 
 - Every external GitHub Action reference resolves to its exact 40-character
   commit SHA through the GitHub API.
-- Ollama 0.35.0 came from the official GitHub release ZIP, passed SHA-256
-  verification, `codesign`, and Gatekeeper notarization checks.
+- The previously qualified Ollama 0.35.0 artifact came from the official GitHub
+  release ZIP and passed SHA-256, `codesign`, and Gatekeeper notarization checks.
 - The approved model is `qwen3-coder:30b` with immutable Ollama digest
   `06c1097efce0431c2045fe7b2e5108366e43bee1b4603a7aded8f21689e90bca`.
 - macOS release binaries are ad-hoc signed by the repository build script.
   They are not represented as Developer ID notarized artifacts.
-- The Desktop launcher is local source, byte-matched to the tracked launcher,
-  owner-executable only, and fail-closed on repository origin and SHA, model
-  digest, exact Ollama version, live cloud status, loopback-only listeners,
-  provider overrides, and clean-tree checks.
+- Prior qualification byte-matched a Desktop launcher to the tracked source and
+  proved its fail-closed contracts. The Desktop copy is currently absent and
+  must be installed owner-executable before final acceptance.
 
 ## Network and telemetry boundary
 
-The isolated `frictionless-local` profile exposes exactly one model:
-`ollama/qwen3-coder:30b`. Ollama cloud is disabled in server configuration and
-through `OLLAMA_NO_CLOUD=1`; the launcher also requires the daemon's live
-`/api/status` response to report cloud disabled. It requires every port 11434
-listener and every effective Ollama client endpoint to be
-`127.0.0.1:11434`, and exports `OTEL_SDK_DISABLED=true`. A sandboxed runtime
-test denied external DNS/network access while preserving loopback inference.
+The qualified `frictionless-local` profile configuration exposes exactly one
+model: `ollama/qwen3-coder:30b`. The launcher requires cloud-disabled server
+configuration, `OLLAMA_NO_CLOUD=1`, a live `/api/status` response reporting
+cloud disabled, loopback-only listeners and endpoints, and
+`OTEL_SDK_DISABLED=true`. A prior sandboxed runtime test denied external
+DNS/network access while preserving loopback inference. The current daemon is
+not running, so live cloud, model, listener, and inference state are unknown.
 
 ## Historical documentation checks
 

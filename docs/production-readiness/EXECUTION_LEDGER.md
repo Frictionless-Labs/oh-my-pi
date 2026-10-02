@@ -354,3 +354,18 @@ Append-only evidence for the production-readiness run against the public
 | Classification | `PROVE_NOW` — release approval must explicitly accept the frozen upstream base or start a new requalification against `v18.4.12`. `NO_OP_EVIDENCED` — no registry publication is invoked or authorized by PR#1. |
 | Files changed | `docs/production-readiness/SECURITY_EVIDENCE.md`; `docs/production-readiness/EXECUTION_LEDGER.md` |
 | Secrets check | PASS — only public refs, repository settings, and command names were retained. |
+
+## 2026-10-02T18:55:29Z — Phase 14 live operational-state audit
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-02T18:55:29Z` |
+| Phase | `14` |
+| Mode | `FIX` |
+| Candidate HEAD inspected | `50617d0f163bfb0a670d5eeeb543d0e35e90d297` |
+| Command | Canonical checkout identity/status; Ollama application/process/listener/API discovery; profile, approved-SHA, and Desktop-launcher existence checks; GitHub workflow inventory |
+| Exit code | `0` for the audit wrapper; Ollama version and API probes were unavailable because the application and daemon were absent; GitHub returned `HTTP 404: workflow upstream-monitor.yml not found on the default branch`. |
+| Output evidence | Canonical `main` was clean at `717f97f4d22b3d65c4a4eef6a744255d46f4d1a6`. The `frictionless-local` profile configuration existed, but `/Applications/Ollama.app`, an Ollama process/listener, the owner-only approved-SHA file, and `/Users/mikkohchen/Desktop/Open-Pi.command` were absent. The drift-monitor workflow was not active because it exists only on the PR branch. PR#1 remained Draft and mergeable with 50 files, 25 commits, 2,080 additions, 1,814 deletions, and zero reviews. |
+| Classification | `NO_OP_EVIDENCED` canonical checkout integrity; `BLOCK_RELEASE` local runtime installation and acceptance; `PROVE_NOW` first post-merge drift-monitor run. |
+| Files changed | `docs/production-readiness/SECURITY_EVIDENCE.md`; `docs/production-readiness/EXECUTION_LEDGER.md` |
+| Secrets check | PASS — configuration contents and logs were not printed; only path existence and public repository metadata were retained. |
