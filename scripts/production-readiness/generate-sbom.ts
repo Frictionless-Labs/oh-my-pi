@@ -3,6 +3,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { isEnoent } from "@oh-my-pi/pi-utils";
 
 interface SbomProperty {
 	name: string;
@@ -156,10 +157,36 @@ export function augmentSbomWithBunLock(sbomInput: unknown, lockInput: unknown): 
 	return { ...sbom, lockPackageCount: identities.length, addedPackageCount };
 }
 
-export function validateSbomPaths(sourceInput: string, outputInput: string): ValidatedSbomPaths {
-	const source = path.resolve(sourceInput);
-	const output = path.resolve(outputInput);
-	if (output === source || output.startsWith(`${source}${path.sep}`)) {
+async function resolvePotentialPath(input: string): Promise<string> {
+	let current = path.resolve(input);
+	const missingSegments: string[] = [];
+	while (true) {
+		try {
+			const resolved = await fs.realpath(current);
+			return path.join(resolved, ...missingSegments.reverse());
+		} catch (error) {
+			if (!isEnoent(error)) throw error;
+			try {
+				const entry = await fs.lstat(current);
+				if (entry.isSymbolicLink()) {
+					throw new Error(`SBOM output path contains an unresolved symbolic link: ${current}`);
+				}
+			} catch (lstatError) {
+				if (!isEnoent(lstatError)) throw lstatError;
+			}
+			const parent = path.dirname(current);
+			if (parent === current) throw error;
+			missingSegments.push(path.basename(current));
+			current = parent;
+		}
+	}
+}
+
+export async function validateSbomPaths(sourceInput: string, outputInput: string): Promise<ValidatedSbomPaths> {
+	const source = await fs.realpath(path.resolve(sourceInput));
+	const output = await resolvePotentialPath(outputInput);
+	const relative = path.relative(source, output);
+	if (relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))) {
 		throw new Error("SBOM output must be outside the scanned source directory");
 	}
 	return { source, output };
@@ -182,7 +209,7 @@ async function main(): Promise<void> {
 		);
 	}
 
-	const paths = validateSbomPaths(source, output);
+	const paths = await validateSbomPaths(source, output);
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-sbom-"));
 	const baseSbom = path.join(tempDir, "syft.cdx.json");
 	try {

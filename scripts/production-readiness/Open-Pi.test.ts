@@ -12,7 +12,7 @@ const describeMac = process.platform === "darwin" ? describe : describe.skip;
 interface Fixture {
 	root: string;
 	repo: string;
-	profileModels: string;
+	profileDir: string;
 	env: Record<string, string>;
 }
 
@@ -26,9 +26,9 @@ async function fixture(): Promise<Fixture> {
 	tempRoots.push(root);
 	const repo = path.join(root, "repo");
 	const bin = path.join(root, "bin");
-	const profileDir = path.join(root, "profile");
+	const home = path.join(root, "home");
+	const profileDir = path.join(home, ".omp", "profiles", "frictionless-local", "agent");
 	const profileConfig = path.join(profileDir, "config.yml");
-	const profileModels = path.join(profileDir, "models.yml");
 	const serverConfig = path.join(root, "server.json");
 	const approvedFile = path.join(root, "approved-sha");
 	const bun = path.join(bin, "bun");
@@ -87,6 +87,19 @@ fi`,
 fi
 [[ "\${OLLAMA_BASE_URL:-}" == "http://127.0.0.1:11434" ]] || exit 92
 [[ "\${OLLAMA_HOST:-}" == "127.0.0.1:11434" ]] || exit 93
+[[ "\${HOME:-}" == "$OPEN_PI_TEST_HOME" ]] || exit 94
+[[ "\${PI_CONFIG_DIR:-}" == ".omp" ]] || exit 95
+[[ "\${PI_CODING_AGENT_DIR:-}" == "$OPEN_PI_TEST_PROFILE_DIR" ]] || exit 96
+[[ "\${OMP_PROFILE:-}" == "frictionless-local" ]] || exit 97
+[[ "\${PI_PROFILE:-}" == "frictionless-local" ]] || exit 98
+[[ "\${XDG_DATA_HOME:-}" == "/dev/null" ]] || exit 99
+[[ "\${XDG_STATE_HOME:-}" == "/dev/null" ]] || exit 100
+[[ "\${XDG_CACHE_HOME:-}" == "/dev/null" ]] || exit 101
+[[ "\${OMP_CONFIG_DIR:-}" == ".omp" ]] || exit 102
+[[ "\${PI_CONFIG_FILES:-}" == ":" ]] || exit 103
+[[ "\${OMP_CONFIG_FILES:-}" == ":" ]] || exit 104
+[[ "$PWD" == "$OPEN_PI_TEST_REPO" ]] || exit 105
+[[ " $* " == *" --no-extensions "* ]] || exit 106
 print -r -- '{"models":[{"provider":"ollama","id":"qwen3-coder:30b"}]}'`,
 	);
 	await executable(ollama, "exit 0");
@@ -94,7 +107,7 @@ print -r -- '{"models":[{"provider":"ollama","id":"qwen3-coder:30b"}]}'`,
 	return {
 		root,
 		repo,
-		profileModels,
+		profileDir,
 		env: {
 			OPEN_PI_TEST_MODE: "1",
 			OPEN_PI_TEST_REPO: repo,
@@ -103,8 +116,10 @@ print -r -- '{"models":[{"provider":"ollama","id":"qwen3-coder:30b"}]}'`,
 			OPEN_PI_TEST_APPROVED_FILE: approvedFile,
 			OPEN_PI_TEST_DIGEST: DIGEST,
 			OPEN_PI_TEST_AUTOSTART: "0",
+			OPEN_PI_TEST_HOME: home,
+			OPEN_PI_TEST_CONFIG_DIR: ".omp",
+			OPEN_PI_TEST_PROFILE_DIR: profileDir,
 			OPEN_PI_TEST_PROFILE_CONFIG: profileConfig,
-			OPEN_PI_TEST_PROFILE_MODELS: profileModels,
 			OPEN_PI_TEST_SERVER_CONFIG: serverConfig,
 			OPEN_PI_TEST_LOG_DIR: path.join(root, "logs"),
 			OPEN_PI_TEST_SERVER_LOG: path.join(root, "ollama.log"),
@@ -171,11 +186,59 @@ describeMac("Open Pi launcher production boundary", () => {
 		expect(result.stderr).toContain("[ollama_bind]");
 	});
 
-	test("rejects profile-level model provider overrides", async () => {
+	for (const filename of ["models.yml", "models.yaml", "models.json"] as const) {
+		test(`rejects the supported ${filename} provider override path`, async () => {
+			const f = await fixture();
+			await Bun.write(
+				path.join(f.profileDir, filename),
+				"providers:\n  ollama:\n    baseUrl: https://remote.invalid\n",
+			);
+			const result = await run(f);
+			expect(result.exitCode).toBe(1);
+			expect(result.stderr).toContain("[provider_config]");
+		});
+	}
+
+	test("forces inherited config roots onto the approved profile", async () => {
 		const f = await fixture();
-		await Bun.write(f.profileModels, "providers:\n  ollama:\n    baseUrl: https://remote.invalid\n");
+		expect(
+			await run(f, {
+				HOME: path.join(f.root, "hostile-home"),
+				PI_CONFIG_DIR: "hostile-config",
+				PI_CODING_AGENT_DIR: path.join(f.root, "hostile-agent"),
+				OMP_PROFILE: "hostile-profile",
+				PI_PROFILE: "hostile-profile",
+				XDG_DATA_HOME: path.join(f.root, "hostile-xdg-data"),
+				XDG_STATE_HOME: path.join(f.root, "hostile-xdg-state"),
+				XDG_CACHE_HOME: path.join(f.root, "hostile-xdg-cache"),
+				PI_CONFIG_FILES: path.join(f.root, "hostile-pi-overlay.yml"),
+				OMP_CONFIG_FILES: path.join(f.root, "hostile-omp-overlay.yml"),
+			}),
+		).toEqual({ exitCode: 0, stderr: "" });
+	});
+
+	test("rejects a profile reached through a symlinked parent", async () => {
+		const f = await fixture();
+		const configRoot = path.join(f.root, "home", ".omp");
+		const movedConfigRoot = path.join(f.root, "moved-omp");
+		await fs.rename(configRoot, movedConfigRoot);
+		await fs.symlink(movedConfigRoot, configRoot, "dir");
+
 		const result = await run(f);
 		expect(result.exitCode).toBe(1);
-		expect(result.stderr).toContain("[provider_config]");
+		expect(result.stderr).toContain("[profile_root]");
+	});
+
+	test("rejects a symlinked profile config", async () => {
+		const f = await fixture();
+		const profileConfig = path.join(f.profileDir, "config.yml");
+		const alternateConfig = path.join(f.root, "alternate-config.yml");
+		await Bun.write(alternateConfig, "enabledModels:\n  - ollama/qwen3-coder:30b\n");
+		await fs.rm(profileConfig);
+		await fs.symlink(alternateConfig, profileConfig);
+
+		const result = await run(f);
+		expect(result.exitCode).toBe(1);
+		expect(result.stderr).toContain("[profile_config]");
 	});
 });
