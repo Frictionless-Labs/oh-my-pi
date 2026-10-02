@@ -1,6 +1,6 @@
 ---
 title: OH-MY-PI Production Security Evidence
-version: 1.1.0
+version: 1.2.0
 status: candidate
 created_date: 2026-10-01
 tags:
@@ -13,29 +13,32 @@ owner: MIKKOH Chen
 
 # Security Evidence
 
-This evidence applies to the last code-bearing production-readiness candidate
-`e42957edcca44d367951689d52884c723272cd73`, based on upstream `v18.4.8` at
-`717f97f4d22b3d65c4a4eef6a744255d46f4d1a6`. All 15 ruleset-required GitHub
-checks passed on that exact predecessor. Its evidence-only descendants require
-fresh hosted qualification recorded outside their own Git trees. Release
-evidence must use the merged SHA and externally generated artifacts.
+The current code-bearing production-readiness candidate is
+`d8a60d8c1caaac11bf9339f23a6ac679892ffe85`, based on upstream `v18.4.8` at
+`717f97f4d22b3d65c4a4eef6a744255d46f4d1a6`. Local regression, type, format,
+SBOM, and vulnerability gates pass on that exact candidate. The last candidate
+with all 15 ruleset-required GitHub checks passing is predecessor
+`e42957edcca44d367951689d52884c723272cd73`; the current candidate still needs
+fresh hosted qualification. Release evidence must use the merged SHA and
+externally generated artifacts.
 
 ## Gate results
 
 | Gate | Result | Evidence |
 |---|---|---|
-| Full Git history | PASS | Hosted Gitleaks 8.30.1 scanned 20,957 commits and 323.08 MB at the exact candidate with no leaks; the detector-scope canary produced the required finding. |
-| Candidate committed tree | PASS | The exact candidate is included in the hosted full-history scan; GitHub Actions checked out the committed tree with full history. |
-| Candidate patch | PASS | Every candidate commit from the frozen base through the exact head is included in the same full-history scan. |
-| JavaScript vulnerabilities | PASS | Hosted `bun audit --audit-level=high` reported no vulnerabilities across 516 packages. |
-| Rust vulnerabilities | PASS | Hosted `cargo audit` reported zero vulnerabilities and four adjudicated maintenance warnings. |
-| Rust policy | PASS | Hosted `cargo deny check` reported advisories, bans, licenses, and sources all OK. |
-| Python vulnerabilities | PASS | Hosted pip-audit 2.10.1 reported no known vulnerabilities; editable local packages were intentionally skipped. |
-| Cross-ecosystem scan | PASS | A fresh external SBOM for the exact candidate passed Grype 0.119.0 with `--fail-on medium --only-fixed`: no vulnerabilities found. |
-| Static analysis | PASS | CodeQL v4.38.2 `security-extended` passed for Actions, JavaScript/TypeScript, Python, and Rust on the exact candidate. |
-| Candidate SBOM | PASS | A fresh `git archive` scan produced 2,177 components and reconciled all 565 external Bun lock records. SHA-256: `fa0b35cac0531ca694ee021c53224d06186155d593d74794316f7c092e5c269b`. |
+| Full Git history | PASS — predecessor | Hosted Gitleaks 8.30.1 scanned 20,957 commits and 323.08 MB at `e42957edcca44d367951689d52884c723272cd73` with no leaks; the detector-scope canary produced the required finding. |
+| Candidate committed tree | PROVE_NOW | The current candidate requires its own hosted full-history scan. |
+| Candidate patch | PROVE_NOW | The current candidate requires its own hosted full-history scan through the exact head. |
+| JavaScript vulnerabilities | PASS — predecessor | Hosted `bun audit --audit-level=high` reported no vulnerabilities across 516 packages. |
+| Rust vulnerabilities | PASS — predecessor | Hosted `cargo audit` reported zero vulnerabilities and four adjudicated maintenance warnings. |
+| Rust policy | PASS — predecessor | Hosted `cargo deny check` reported advisories, bans, licenses, and sources all OK. |
+| Python vulnerabilities | PASS — predecessor | Hosted pip-audit 2.10.1 reported no known vulnerabilities; editable local packages were intentionally skipped. |
+| Cross-ecosystem scan | PASS — current candidate | A fresh external SBOM for `d8a60d8c1caaac11bf9339f23a6ac679892ffe85` passed Grype 0.119.0 with `--fail-on medium --only-fixed`: no vulnerabilities found. |
+| Static analysis | PASS — predecessor | CodeQL v4.38.2 `security-extended` passed for Actions, JavaScript/TypeScript, Python, and Rust on `e42957edcca44d367951689d52884c723272cd73`; current-candidate CodeQL is pending. |
+| Candidate SBOM | PASS — current candidate | A fresh `git archive` scan produced 2,177 components and reconciled all 565 external Bun lock records. SHA-256: `dae408ae97ec62f0a646dff79391428a71cab8315f773da9bc2fd861af439cd3`. |
 
-The exact-candidate SBOM is retained outside the scanned source at
+The current exact-candidate SBOM is retained outside the scanned source at
+`/tmp/omp-d8a60-sbom.LDcbOM/SBOM.json`. The predecessor SBOM remains at
 `/tmp/omp-e429-sbom.kSCplu/SBOM.json`. The tracked
 `docs/production-readiness/SBOM.json` is a 1,921-component snapshot generated
 at `2026-10-01T10:01:12-04:00`; it is not exact-current evidence. A tracked
@@ -48,9 +51,9 @@ Release asset with checksums and provenance.
 
 | Control | Exact result |
 |---|---|
-| Required checks | 15/15 ruleset-required contexts passed on predecessor `e42957edcca44d367951689d52884c723272cd73`; the current evidence-only descendant requires its own external check record. |
-| Rust matrix | Ubuntu 3,083 passed/6 skipped; macOS 3,061 passed/5 skipped; Windows 2,814 passed/4 skipped; doctest passes completed. |
-| Script suite | Ubuntu ran 47 tests across seven files: 40 passed, seven macOS-only launcher tests skipped, zero failed. |
+| Required checks | 15/15 ruleset-required contexts passed on predecessor `e42957edcca44d367951689d52884c723272cd73`; current candidate `d8a60d8c1caaac11bf9339f23a6ac679892ffe85` requires its own external check record. |
+| Rust matrix | Predecessor hosted results: Ubuntu 3,083 passed/6 skipped; macOS 3,061 passed/5 skipped; Windows 2,814 passed/4 skipped; doctest passes completed. |
+| Script suite | Current candidate local macOS run: 53/53 passed across seven files with 138 assertions. Predecessor hosted Ubuntu run: 40 passed, seven macOS-only launcher tests skipped, zero failed. |
 | Repository alerts | At 2026-10-02T18:47:03Z, open CodeQL, Dependabot, and secret-scanning alerts were each zero. |
 | Review state | PR#1 had zero reviews, zero review threads, and zero issue comments. Automated qualification is not human review. |
 | Repository visibility | Public; there were no GitHub Releases or deployments at 2026-10-02T18:47:03Z. The runtime is local-only, not the repository or future release. |
@@ -115,12 +118,16 @@ license and dynamic-linking replacement terms if distributed.
 ## Network and telemetry boundary
 
 The qualified `frictionless-local` profile configuration exposes exactly one
-model: `ollama/qwen3-coder:30b`. The launcher requires cloud-disabled server
-configuration, `OLLAMA_NO_CLOUD=1`, a live `/api/status` response reporting
-cloud disabled, loopback-only listeners and endpoints, and
-`OTEL_SDK_DISABLED=true`. A prior sandboxed runtime test denied external
-DNS/network access while preserving loopback inference. The current daemon is
-not running, so live cloud, model, listener, and inference state are unknown.
+model: `ollama/qwen3-coder:30b`. The launcher rejects all automatically loaded
+provider override filenames, symlinked profile paths, inherited configuration
+roots and overlays, and extension discovery. Discovery and execution share the
+canonical repository cwd and pinned profile environment. The launcher also
+requires cloud-disabled server configuration, `OLLAMA_NO_CLOUD=1`, a live
+`/api/status` response reporting cloud disabled, loopback-only listeners and
+endpoints, and `OTEL_SDK_DISABLED=true`. A prior sandboxed runtime test denied
+external DNS/network access while preserving loopback inference. The current
+daemon is not running, so live cloud, model, listener, and inference state are
+unknown.
 
 ## Historical documentation checks
 

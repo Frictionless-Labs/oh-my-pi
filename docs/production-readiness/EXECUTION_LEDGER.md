@@ -369,3 +369,24 @@ Append-only evidence for the production-readiness run against the public
 | Classification | `NO_OP_EVIDENCED` canonical checkout integrity; `BLOCK_RELEASE` local runtime installation and acceptance; `PROVE_NOW` first post-merge drift-monitor run. |
 | Files changed | `docs/production-readiness/SECURITY_EVIDENCE.md`; `docs/production-readiness/EXECUTION_LEDGER.md` |
 | Secrets check | PASS — configuration contents and logs were not printed; only path existence and public repository metadata were retained. |
+
+## 2026-10-02T19:13:53Z — Phase 15 independent-review security repair
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-02T19:13:53Z` |
+| Phase | `15` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| Code-bearing HEAD | `d8a60d8c1caaac11bf9339f23a6ac679892ffe85` |
+| Command | Independent whole-branch review; focused RED/GREEN tests; `bun check`; `bun run test:scripts`; `zsh -n`; `git diff --check`; fresh exact-SHA `git archive`; external Syft 1.52.0 SBOM augmentation; Grype 0.119.0 `--fail-on medium --only-fixed` |
+| Exit code | `0` for final local gates. The first `bun check` exited `1` for one formatting finding, and the first formatter command exited `127` because no standalone `bunx` executable existed; both were corrected and rerun successfully. |
+| Review findings | `BLOCK_RELEASE`: `models.yaml` and legacy `models.json` could bypass the provider override check; inherited configuration roots, overlays, cwd, and extensions could make discovery differ from inspected state. `FIX_NOW`: lexical SBOM containment allowed filesystem aliases and self-ingestion. |
+| Repair evidence | Launcher discovery and execution now pin the same home, config root, overlay sentinel, profile, canonical cwd, loopback endpoint, and extension-disabled mode. The launcher rejects all automatic provider files plus symlinked config/profile paths. SBOM output containment uses canonical filesystem identity and rejects unresolved symlinks. |
+| Test evidence | Two explicit RED cycles reproduced the defects. Final focused result: 16/16 passed with 30 assertions. Complete script result: 53/53 passed across seven files with 138 assertions. `bun check`, launcher syntax, and `git diff --check` passed. Rust checks were not run locally because no Rust-affecting path changed. |
+| SBOM evidence | Fresh external exact-SHA SBOM: 2,177 components, all 565 external Bun lock records, SHA-256 `dae408ae97ec62f0a646dff79391428a71cab8315f773da9bc2fd861af439cd3`; Grype found no fixed Medium-or-higher vulnerabilities. Retained at `/tmp/omp-d8a60-sbom.LDcbOM/SBOM.json`. |
+| Classification | `FIX_NOW` completed locally; `PROVE_NOW` exact-successor hosted checks and final clean-SHA review; `BLOCK_RELEASE` human, upstream-base, merged-SHA artifact, local runtime, canary, and rollback gates. |
+| Files changed | `scripts/production-readiness/Open-Pi.command`; `scripts/production-readiness/Open-Pi.test.ts`; `scripts/production-readiness/generate-sbom.ts`; `scripts/production-readiness/generate-sbom.test.ts`; this ledger and `SECURITY_EVIDENCE.md`. |
+| Reviewer | Independent Codex reviewer plus executor remediation. |
+| Secrets check | PASS — only public commit IDs, tool versions, test totals, and artifact digests were retained. |
