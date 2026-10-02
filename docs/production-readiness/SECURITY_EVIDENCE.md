@@ -53,6 +53,8 @@ Release asset with checksums and provenance.
 | Repository alerts | At 2026-10-02T18:47:03Z, open CodeQL, Dependabot, and secret-scanning alerts were each zero. |
 | Review state | PR#1 had zero reviews, zero review threads, and zero issue comments. Automated qualification is not human review. |
 | Repository visibility | Public; there were no GitHub Releases or deployments at 2026-10-02T18:47:03Z. The runtime is local-only, not the repository or future release. |
+| Upstream drift | Upstream published `v18.4.12` at commit `7318a70cf4ed04133366884d2723f72d9d490a15` on 2026-10-02; this candidate remains intentionally frozen at `v18.4.8`. Release approval must explicitly accept the frozen base or requalify a new base. |
+| Publication boundary | Inherited npm publication scripts remain in the repository. PR#1 does not invoke or authorize them, and the operating runbook forbids `bun run release`; this is an operational exclusion, not code removal. |
 | Main ruleset | Active ruleset `24312690` requires strict, up-to-date success for 15 contexts and permits squash or rebase merges. |
 | Release-tag ruleset | Active ruleset `24312691` protects `v*+frictionless.*` creation, update, and deletion; organization administrators can bypass it. |
 

@@ -339,3 +339,18 @@ Append-only evidence for the production-readiness run against the public
 | Files changed | `docs/production-readiness/SECURITY_EVIDENCE.md`; `docs/production-readiness/EXECUTION_LEDGER.md` |
 | Reviewer | Executor; independent whole-branch review pending on the successor SHA. |
 | Secrets check | PASS — only public repository metadata, test totals, digests, and redacted scanner results were retained. |
+
+## 2026-10-02T18:53:47Z — Phase 13 upstream and publication-boundary audit
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-02T18:53:47Z` |
+| Phase | `13` |
+| Mode | `FIX` |
+| HEAD inspected | `722777d2e0da69f732a7c325bbae2a1fa254428f` |
+| Command | Live upstream release/ref query; repository publication-command search; Actions permission query; origin-main freshness and PR mergeability check |
+| Exit code | `0` |
+| Output evidence | Upstream released `v18.4.12` at commit `7318a70cf4ed04133366884d2723f72d9d490a15` on 2026-10-02T16:03:50Z. The fork candidate remains frozen at `v18.4.8`. Inherited npm publication scripts remain present, but the PR adds no registry invocation and the operating runbook forbids `bun run release`. GitHub Actions are restricted to selected owners, require SHA pinning, default to read permissions, and cannot approve PRs. Origin `main` remained `717f97f4d22b3d65c4a4eef6a744255d46f4d1a6`; PR#1 remained mergeable but blocked by checks. |
+| Classification | `PROVE_NOW` — release approval must explicitly accept the frozen upstream base or start a new requalification against `v18.4.12`. `NO_OP_EVIDENCED` — no registry publication is invoked or authorized by PR#1. |
+| Files changed | `docs/production-readiness/SECURITY_EVIDENCE.md`; `docs/production-readiness/EXECUTION_LEDGER.md` |
+| Secrets check | PASS — only public refs, repository settings, and command names were retained. |
