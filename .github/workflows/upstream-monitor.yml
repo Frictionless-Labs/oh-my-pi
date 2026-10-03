@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 env:
-  BASELINE_TAG: v18.4.8
-  BASELINE_SHA: 717f97f4d22b3d65c4a4eef6a744255d46f4d1a6
+  BASELINE_TAG: v18.5.0
+  BASELINE_SHA: 9348320cc4a30a7195d36a1f05a6c11bcb701a17
   GH_TOKEN: ${{ github.token }}
   UPSTREAM_REPOSITORY: can1357/oh-my-pi
 
