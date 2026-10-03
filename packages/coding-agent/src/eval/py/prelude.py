@@ -528,7 +528,8 @@ if "__omp_prelude_loaded__" not in globals():
             return schema
         if origin is typing.Literal:
             return {"enum": list(args)}
-        if origin in (typing.Union, types.UnionType):
+        union_type = getattr(types, "UnionType", None)
+        if origin is typing.Union or (union_type is not None and origin is union_type):
             non_null = [item for item in args if item is not type(None)]
             if len(non_null) == 1 and len(non_null) != len(args):
                 return {
