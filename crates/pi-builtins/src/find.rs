@@ -173,6 +173,7 @@ pub mod matchers {
 		use pi_vfs::{BlockingFs, FileKind, Metadata};
 
 		use super::Follow;
+		use crate::host::forward_slash_display;
 
 		/// File types.
 		#[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -342,19 +343,6 @@ pub mod matchers {
 			/// shell cwd; this preserves the operand-prefixed path GNU find prints and
 			/// matches against (e.g. `find .` -> `./a`). `None` falls back to `path()`.
 			display: Option<PathBuf>,
-		}
-
-		/// Forward-slash spelling of a Windows display path, or `None` when the path
-		/// already displays as-is (non-Windows, no backslashes, verbatim prefix, or
-		/// non-Unicode names that must stay native).
-		fn forward_slash_display(path: &Path) -> Option<PathBuf> {
-			if !cfg!(windows) || path.to_str().is_none() {
-				return None;
-			}
-			match pi_walker::normalize_path(path) {
-				std::borrow::Cow::Owned(text) => Some(PathBuf::from(text)),
-				std::borrow::Cow::Borrowed(_) => None,
-			}
 		}
 
 		impl WalkEntry {
@@ -5309,6 +5297,7 @@ mod tests {
 				"-regextype".into(),
 				"posix-extended".into(),
 				"-regex".into(),
+				// The fixture root is native (`\\?\C:\…` on Windows), so match either separator.
 				r".*[/\\]c|.*[/\\]c\.rs".into(),
 			],
 		);

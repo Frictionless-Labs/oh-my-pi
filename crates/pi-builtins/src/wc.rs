@@ -4,8 +4,6 @@
 
 mod count_fast {
 	use std::io::{self, ErrorKind, Read};
-	#[cfg(windows)]
-	use std::io::Seek;
 	#[cfg(unix)]
 	use std::os::fd::AsRawFd;
 	
@@ -113,16 +111,25 @@ mod count_fast {
 		}
 
 		#[cfg(windows)]
-		if let Some(file) = handle.native_file()
-			&& let Ok(metadata) = file.metadata()
 		{
-			let attributes = metadata.file_attributes();
-			if ((attributes & FILE_ATTRIBUTE_ARCHIVE) != 0
-				|| (attributes & FILE_ATTRIBUTE_NORMAL) != 0)
-				&& let Ok(mut duplicate) = file.try_clone()
-				&& let Ok(current) = duplicate.stream_position()
+			use std::io::{Seek as _, SeekFrom};
+
+			if let Some(mut file) = handle.native_file()
+				&& let Ok(metadata) = file.metadata()
 			{
-				return (metadata.file_size().saturating_sub(current) as usize, None);
+				let attributes = metadata.file_attributes();
+
+				if (attributes & FILE_ATTRIBUTE_ARCHIVE) != 0
+					|| (attributes & FILE_ATTRIBUTE_NORMAL) != 0
+				{
+					// Count from the current offset (`{ head -c2; wc -c; } < f`) and
+					// leave the handle at EOF, as reading it would, like the unix path.
+					if let Ok(current) = file.stream_position()
+						&& file.seek(SeekFrom::End(0)).is_ok()
+					{
+						return (metadata.file_size().saturating_sub(current) as usize, None);
+					}
+				}
 			}
 		}
 	

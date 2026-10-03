@@ -410,3 +410,24 @@ Append-only evidence for the production-readiness run against the public
 | Files changed | Upstream `v18.4.12` merge; conflict resolutions in `MODULE.bazel.lock`, `crates/pi-edit/src/path_policy.rs`, and `package.json`; Python 3.9 compatibility repair; this ledger and `SECURITY_EVIDENCE.md`. |
 | Reviewer | Executor. |
 | Secrets check | PASS — no credentials or private payloads were printed or added. |
+
+## 2026-10-03T02:24:02Z — Phase 17 upstream v18.5.0 local requalification
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-03T02:24:02Z` |
+| Phase | `17` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| Predecessor HEAD | `3b2f36e7492e16bba272e165ff42d084339921f9` |
+| Upstream merge head | `9348320cc4a30a7195d36a1f05a6c11bcb701a17` (`v18.5.0`) |
+| Command | Live latest-release check; ancestry check; frozen install; Bazel lock regeneration/check; native build; TypeScript harness; repeated focused tests; Rust wrapper; expanded script suite; `bun check`; `git diff --check` |
+| Exit code | `0` for every authoritative gate. An initial 18-way local TypeScript run passed 192/194 chunks; both failures passed ten repeated isolated runs, and the complete bounded-concurrency rerun passed 194/194. |
+| Output evidence | `v18.5.0` is a direct descendant of `v18.4.12`. Frozen install checked 414 installs across 583 packages. Native v18.5.0 bindings built. TypeScript passed 194/194 chunks at concurrency 4. Rust nextest and doctests passed. Script tests passed 132 with one platform skip and 338 assertions. `bun check` and the generated Bazel lock check exited zero. |
+| Conflict resolution | Regenerated `MODULE.bazel.lock`; preserved exact Windows worktree assertions; adopted upstream Windows `wc` offset/EOF behavior, portable path comments, and the expanded script aggregate. |
+| Integration repairs | Updated fork tests for upstream's `TMPDIR_ENV_VARS` rename and shared `strip_errno` helper. The first Rust wrapper run failed on those two stale test references; the corrected full wrapper exited zero. |
+| Classification | `FIX_NOW` current stable merge and deterministic integration repairs completed locally; `PROVE_NOW` committed candidate identity, hosted checks, exact-head SBOM, vulnerability scan, and final review; `BLOCK_RELEASE` human contribution attestation, Finder acceptance, launcher canary, and rollback qualification. |
+| Files changed | Upstream `v18.5.0` merge; conflict resolutions; generated Bazel lock; two Rust test integration repairs; this ledger and `SECURITY_EVIDENCE.md`. |
+| Reviewer | Executor. |
+| Secrets check | PASS — no credentials or private payloads were printed or added. |
