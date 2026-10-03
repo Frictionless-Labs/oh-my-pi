@@ -8,7 +8,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getSafeProjectCwd, logger, postmortem } from "@oh-my-pi/pi-utils";
+import { getSafeProjectCwd, logger, openCloexecSync, postmortem } from "@oh-my-pi/pi-utils";
 import fnEnvHelper from "./shell-snapshot-fn-env.sh" with { type: "text" };
 
 const cachedSnapshotPaths = new Map<string, string>();
@@ -68,7 +68,15 @@ function scrubSnapshotInPlace(snapshotPath: string): void {
 		const raw = fs.readFileSync(snapshotPath, "utf8");
 		const { content, dropped } = sanitizeSnapshotForBrush(raw);
 		if (dropped.length === 0) return;
-		fs.writeFileSync(snapshotPath, content);
+		const fd = openCloexecSync(
+			snapshotPath,
+			fs.constants.O_WRONLY | fs.constants.O_TRUNC | (fs.constants.O_NOFOLLOW ?? 0),
+		);
+		try {
+			fs.writeFileSync(fd, content);
+		} finally {
+			fs.closeSync(fd);
+		}
 		logger.debug("shell-snapshot: dropped brush-incompatible aliases", { dropped });
 	} catch (err) {
 		logger.debug("shell-snapshot: scrub failed", { err: String(err) });
@@ -263,7 +271,7 @@ export async function getOrCreateSnapshot(
 		// redirection would create the file world-readable; the JS-side post-spawn
 		// chmod would tighten it, but only after the shell finished writing every
 		// captured env value to disk.
-		fs.writeFileSync(snapshotPath, "", { mode: 0o600 });
+		fs.writeFileSync(snapshotPath, "", { mode: 0o600, flag: "wx" });
 	} catch (err) {
 		// Unusable snapshot dir (foreign owner, read-only or full /tmp): run without
 		// a snapshot instead of failing the caller's command.

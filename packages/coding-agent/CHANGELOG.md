@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Fixed zero-duration shell cancellation deadlines remaining active for one coarse clock tick on Windows.
+- Fixed tunnel and shell snapshot files using race-prone temporary paths, and removed tunnel readiness logs after startup.
 - Fixed daemon log and readiness regexes allowing backtracking patterns to stall the broker; matching now uses the bounded linear-time native engine.
 - Fixed plan and session staging files being created without explicit private file permissions.
 - Fixed several unbounded parsers for commands, attachment paths, OAuth challenges, diagnostics, and environment placeholders.

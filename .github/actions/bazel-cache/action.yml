@@ -66,8 +66,25 @@ runs:
         env:
            CONFIG_HASH: ${{ hashFiles('Cargo.toml', 'Cargo.lock', 'MODULE.bazel', 'MODULE.bazel.lock', 'rust-toolchain.toml', 'rustfmt.toml', '.bazelrc', '.bazelignore', '.bazelversion', 'bazel/**') }}
            SOURCE_HASH: ${{ hashFiles('crates/**', 'BUILD.bazel') }}
+           CACHE_SCOPE: ${{ inputs.scope }}
+           FALLBACK_SCOPE: ${{ inputs.fallback-scope }}
+           RUNNER_OS: ${{ runner.os }}
+           RUNNER_ARCH: ${{ runner.arch }}
         run: |
            set -euo pipefail
+           scope_pattern='^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'
+           if [[ ! "$CACHE_SCOPE" =~ $scope_pattern ]]; then
+             echo "::error::bazel cache scope must use 1-64 letters, digits, dots, underscores, or hyphens"
+             exit 1
+           fi
+           if [[ -n "$FALLBACK_SCOPE" && ! "$FALLBACK_SCOPE" =~ $scope_pattern ]]; then
+             echo "::error::bazel fallback scope must use 1-64 letters, digits, dots, underscores, or hyphens"
+             exit 1
+           fi
+           if [[ ! "$RUNNER_OS" =~ $scope_pattern || ! "$RUNNER_ARCH" =~ $scope_pattern ]]; then
+             echo "::error::runner identity contains unsupported characters"
+             exit 1
+           fi
            remote=false
            if [ -n "${BAZEL_REMOTE_USER:-}" ] || [ -n "${BAZEL_REMOTE_PASSWORD:-}" ]; then
              if [ -z "${BAZEL_REMOTE_USER:-}" ] || [ -z "${BAZEL_REMOTE_PASSWORD:-}" ]; then
@@ -76,12 +93,12 @@ runs:
              fi
              remote=true
            fi
-           key="bazel-disk-v3-${{ inputs.scope }}-${{ runner.os }}-${{ runner.arch }}-$CONFIG_HASH-$SOURCE_HASH"
-           prefix="bazel-disk-v3-${{ inputs.scope }}-${{ runner.os }}-${{ runner.arch }}-$CONFIG_HASH-"
-           bare_prefix="bazel-disk-v3-${{ inputs.scope }}-${{ runner.os }}-${{ runner.arch }}-"
+           key="bazel-disk-v3-${CACHE_SCOPE}-${RUNNER_OS}-${RUNNER_ARCH}-$CONFIG_HASH-$SOURCE_HASH"
+           prefix="bazel-disk-v3-${CACHE_SCOPE}-${RUNNER_OS}-${RUNNER_ARCH}-$CONFIG_HASH-"
+           bare_prefix="bazel-disk-v3-${CACHE_SCOPE}-${RUNNER_OS}-${RUNNER_ARCH}-"
            fallback_prefix=""
-           if [ -n "${{ inputs.fallback-scope }}" ]; then
-             fallback_prefix="bazel-disk-v3-${{ inputs.fallback-scope }}-${{ runner.os }}-${{ runner.arch }}-"
+           if [ -n "$FALLBACK_SCOPE" ]; then
+             fallback_prefix="bazel-disk-v3-${FALLBACK_SCOPE}-${RUNNER_OS}-${RUNNER_ARCH}-"
            fi
            {
              echo "remote=$remote"

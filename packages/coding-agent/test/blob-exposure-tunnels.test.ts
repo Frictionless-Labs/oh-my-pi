@@ -182,6 +182,19 @@ describe("tunnel URL parsers", () => {
 });
 
 describe("startExposure tunnel adapters", () => {
+	it("removes each private tunnel log after the child exits", async () => {
+		const before = new Set(fs.readdirSync(os.tmpdir()).filter(name => name.startsWith("omp-blob-tunnel-")));
+		const invocation = prepareFake('{"type":"registered","domain":"quiet-owl.lhr.life"}');
+		const active = await startExposure(exposure("localhost-run"), PORT);
+		activeExposures.push(active);
+
+		await stopAndObserve(active, invocation);
+		const leaked = fs
+			.readdirSync(os.tmpdir())
+			.filter(name => name.startsWith("omp-blob-tunnel-") && !before.has(name));
+		expect(leaked).toEqual([]);
+	});
+
 	it("starts localhost.run with official SSH argv and owns its process", async () => {
 		const invocation = prepareFake('{"type":"registered","domain":"quiet-owl.lhr.life"}');
 		const active = await startExposure(exposure("localhost-run"), PORT);
