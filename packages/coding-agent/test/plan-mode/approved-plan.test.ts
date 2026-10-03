@@ -160,6 +160,13 @@ describe("normalizePlanTitle", () => {
 		expect(normalizePlanTitle("foo  bar")).toEqual({ title: "foo-bar", fileName: "foo-bar.md" });
 	});
 
+	it("normalizes adversarial whitespace runs without changing the filename contract", () => {
+		expect(normalizePlanTitle(`foo${" ".repeat(100_000)}bar`)).toEqual({
+			title: "foo-bar",
+			fileName: "foo-bar.md",
+		});
+	});
+
 	it("drops characters outside the allowed set after space replacement", () => {
 		expect(normalizePlanTitle("plan: v1.0 (draft)")).toEqual({
 			title: "plan-v10-draft",

@@ -343,11 +343,30 @@ function unquoteGitDiffPath(rawPath: string): string {
 	return value.replace(/^[ab]\//, "");
 }
 
+function parseQuotedDiffToken(value: string, start: number): { token: string; end: number } | null {
+	if (value.startsWith("/dev/null", start)) return { token: "/dev/null", end: start + "/dev/null".length };
+	if (value[start] !== '"') return null;
+	let index = start + 1;
+	while (index < value.length) {
+		if (value[index] === "\\") {
+			index += 2;
+			continue;
+		}
+		if (value[index] === '"') {
+			if (index === start + 1) return null;
+			return { token: value.slice(start, index + 1), end: index + 1 };
+		}
+		index += 1;
+	}
+	return null;
+}
+
 function parseDiffGitLinePaths(line: string): string[] {
 	if (!line.startsWith("diff --git ")) return [];
 	const rest = line.slice("diff --git ".length);
-	const quoted = rest.match(/^("(?:\\.|[^"])+"|\/dev\/null) ("(?:\\.|[^"])+"|\/dev\/null)$/);
-	const parts = quoted ? [quoted[1], quoted[2]] : rest.split(" ");
+	const first = parseQuotedDiffToken(rest, 0);
+	const second = first && rest[first.end] === " " ? parseQuotedDiffToken(rest, first.end + 1) : null;
+	const parts = first && second?.end === rest.length ? [first.token, second.token] : rest.split(" ");
 	if (parts.length < 2) return [];
 	const paths = parts
 		.slice(0, 2)

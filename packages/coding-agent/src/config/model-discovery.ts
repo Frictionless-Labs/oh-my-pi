@@ -24,7 +24,7 @@ import {
 	resolveLiteLLMApi,
 } from "@oh-my-pi/pi-catalog/provider-models/openai-compat";
 import type { KindApiKind, ModelSpec, OpenAICompat } from "@oh-my-pi/pi-catalog/types";
-import { isRecord } from "@oh-my-pi/pi-utils";
+import { isRecord, stripTrailingCharacter } from "@oh-my-pi/pi-utils";
 import type { ProviderDiscovery } from "./models-config-schema";
 
 // Default cap on `max_tokens` for auto-discovered models that do not advertise
@@ -1259,9 +1259,9 @@ export function normalizeBareDiscoveryBaseUrl(baseUrl: string | undefined): stri
 		const parsed = new URL(raw);
 		parsed.search = "";
 		parsed.hash = "";
-		return `${parsed.protocol}//${parsed.host}${parsed.pathname.replace(/\/+$/g, "")}`;
+		return `${parsed.protocol}//${parsed.host}${stripTrailingCharacter(parsed.pathname, "/")}`;
 	} catch {
-		return raw.replace(/\/+$/g, "");
+		return stripTrailingCharacter(raw, "/");
 	}
 }
 

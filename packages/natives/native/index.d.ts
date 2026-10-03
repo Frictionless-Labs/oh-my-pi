@@ -2105,6 +2105,14 @@ export declare enum KeyEventType {
   Release = 3
 }
 
+/**
+ * Find the first match with Rust's guaranteed-linear-time regex engine.
+ *
+ * Backreferences and look-around are intentionally rejected because they
+ * cannot be evaluated with the engine's linear-time guarantee.
+ */
+export declare function linearRegexFind(pattern: string, text: string): string | null
+
 export interface LineRange {
   /** 1-indexed inclusive first visible line. */
   startLine: number

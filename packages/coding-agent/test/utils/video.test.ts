@@ -75,6 +75,14 @@ describe("splitVideoReadTarget", () => {
 		expect(splitVideoReadTarget("clip.mp4:412")).toEqual({ path: "clip.mp4", sel: "412" });
 	});
 
+	it("uses the last valid video boundary without backtracking across a long path", () => {
+		const prefix = `${"segment:".repeat(20_000)}archive.mp4:old/`;
+		expect(splitVideoReadTarget(`${prefix}clip.WEBM:412`)).toEqual({
+			path: `${prefix}clip.WEBM`,
+			sel: "412",
+		});
+	});
+
 	it("leaves non-video paths and non-selector suffixes alone", () => {
 		expect(splitVideoReadTarget("notes.txt:12")).toBeNull();
 		expect(splitVideoReadTarget("clip.mp4:50-200")).toBeNull();

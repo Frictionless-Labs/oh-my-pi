@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added linear string helpers for stripping repeated trailing characters and horizontal whitespace.
+
+### Fixed
+
+- Fixed bounded asynchronous file peeks opening temporary paths through an unnecessary persistent file handle.
+
 ## [18.5.0] - 2026-10-03
 
 ### Added

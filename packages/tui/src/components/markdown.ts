@@ -188,12 +188,32 @@ function createHtmlNormalizationState(): HtmlNormalizationState {
 	return { lists: [], openItems: [], itemHasContent: [] };
 }
 
-const HTML_COMMENT_REGEX = /<!--[\s\S]*?-->/g;
 const HTML_TAG_REGEX = /<\/?(?:br|p|ol|ul|li|span|text|code|hr|blockquote)\b(?:\s[^>]*)?\s*\/?>/gi;
 // Block-level HTML that needs structural (not just textual) rendering: standalone
 // `<hr>` becomes a rule and balanced `<blockquote>…</blockquote>` renders with
 // quote styling. Group 1 captures blockquote inner content; it is undefined for hr.
 const BLOCK_HTML_REGEX = /<hr\b[^>]*\/?>|<blockquote\b[^>]*>([\s\S]*?)<\/blockquote>/gi;
+
+function stripHtmlComments(raw: string): string {
+	let output = "";
+	let cursor = 0;
+	let depth = 0;
+	while (cursor < raw.length) {
+		if (raw.startsWith("<!--", cursor)) {
+			depth += 1;
+			cursor += 4;
+			continue;
+		}
+		if (depth > 0 && raw.startsWith("-->", cursor)) {
+			depth -= 1;
+			cursor += 3;
+			continue;
+		}
+		if (depth === 0) output += raw[cursor];
+		cursor += 1;
+	}
+	return output;
+}
 
 function htmlTagName(tag: string): string {
 	const match = /^<\/?\s*([A-Za-z][A-Za-z0-9:-]*)/.exec(tag);
@@ -239,7 +259,7 @@ function normalizeHtmlForTerminal(
 	let output = "";
 	let lastIndex = 0;
 	let inCode = false;
-	const withoutComments = raw.replace(HTML_COMMENT_REGEX, "");
+	const withoutComments = stripHtmlComments(raw);
 
 	for (const match of withoutComments.matchAll(HTML_TAG_REGEX)) {
 		const tag = match[0];

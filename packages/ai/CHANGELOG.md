@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed oversized remote error bodies causing unbounded regex work during retry and rate-limit classification.
+
 ## [18.5.0] - 2026-10-03
 
 ### Fixed

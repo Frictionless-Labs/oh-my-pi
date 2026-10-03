@@ -1,3 +1,5 @@
+import { trimTrailingHorizontalWhitespace as trimTrailingWhitespace } from "@oh-my-pi/pi-utils";
+
 type PendingBreak = "brace" | "statement" | "close";
 
 interface ParenFrame {
@@ -653,7 +655,7 @@ export function formatJavaScriptForDisplay(source: string): string {
 	function trimTrailingHorizontalWhitespace(): void {
 		for (let index = output.length - 1; index >= 0; index--) {
 			const chunk = output[index];
-			const trimmed = chunk.replace(/[ \t]+$/, "");
+			const trimmed = trimTrailingWhitespace(chunk);
 			if (trimmed !== chunk) {
 				if (trimmed.length > 0) output[index] = trimmed;
 				else output.splice(index, 1);

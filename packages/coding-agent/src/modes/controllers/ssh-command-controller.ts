@@ -13,6 +13,7 @@ import { parseCommandArgs } from "../../utils/command-args";
 import { theme } from "@oh-my-pi/pi-tui/theme";
 import type { InteractiveModeContext } from "../types";
 import {
+	commandTail,
 	groupBySource,
 	parseRemoveArgs,
 	readScopeFlag,
@@ -73,8 +74,7 @@ export class SSHCommandController {
 	 * Handle /ssh add - parse flags and add host to config
 	 */
 	async #handleAdd(text: string): Promise<void> {
-		const prefixMatch = text.match(/^\/ssh\s+add\b\s*(.*)$/i);
-		const rest = prefixMatch?.[1]?.trim() ?? "";
+		const rest = commandTail(text, "/ssh", ["add"]);
 		if (!rest) {
 			this.ctx.showError(
 				"Usage: /ssh add <name> --host <host> [--user <user>] [--port <port>] [--key <keyPath>] [--desc <description>] [--compat] [--scope project|user]",
@@ -340,8 +340,7 @@ export class SSHCommandController {
 	 * Handle /ssh remove <name> - remove a host from config
 	 */
 	async #handleRemove(text: string): Promise<void> {
-		const match = text.match(/^\/ssh\s+(?:remove|rm)\b\s*(.*)$/i);
-		const rest = match?.[1]?.trim() ?? "";
+		const rest = commandTail(text, "/ssh", ["remove", "rm"]);
 		const parsed = parseRemoveArgs(rest);
 		if (!parsed.ok) {
 			this.ctx.showError(parsed.error);

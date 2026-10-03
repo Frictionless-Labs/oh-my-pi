@@ -124,10 +124,19 @@ function parseWatchdogDoc(
  * survives; callers dedupe collisions.
  */
 export function slugifyAdvisorName(name: string): string {
-	const slug = name
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
+	let slug = "";
+	let separatorPending = false;
+	for (const character of name.toLowerCase()) {
+		const code = character.charCodeAt(0);
+		const allowed = (code >= 0x61 && code <= 0x7a) || (code >= 0x30 && code <= 0x39);
+		if (allowed) {
+			if (separatorPending && slug.length > 0) slug += "-";
+			slug += character;
+			separatorPending = false;
+		} else {
+			separatorPending = slug.length > 0;
+		}
+	}
 	return slug || "advisor";
 }
 

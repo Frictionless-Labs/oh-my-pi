@@ -95,6 +95,10 @@ describe("canonicalMCPToolNameCandidates", () => {
 		expect(recover(`mcp__seedpatch-client_${longTool}`, hyphenated)).toBe(hyphenated);
 	});
 
+	it("canonicalizes adversarial punctuation runs without changing the minted key", () => {
+		expect(createMCPToolName(`server${"-".repeat(100_000)}name`, "read")).toBe("mcp__server_name_read");
+	});
+
 	it("yields nothing for an already-canonical name so exact match stays authoritative", () => {
 		// An empty candidate list is what keeps this off the hot path: a registered
 		// name is found by direct lookup and never reaches canonicalization.

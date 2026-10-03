@@ -11,6 +11,7 @@ import {
 	isEnoent,
 	isEnotdir,
 	isWsl,
+	stripTrailingCharacter,
 	stripWindowsExtendedLengthPathPrefix,
 	windowsPathToWslMount,
 } from "@oh-my-pi/pi-utils";
@@ -1285,7 +1286,7 @@ async function findUniqueWorkspaceSuffixWithGlob(
 	signal: AbortSignal | undefined,
 	globImpl: typeof glob,
 ): Promise<{ absolutePath: string; displayPath: string } | null> {
-	const normalized = rawPath.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
+	const normalized = stripTrailingCharacter(rawPath.replace(/\\/g, "/").replace(/^\.\//, ""), "/");
 	if (!normalized) return null;
 
 	const timeoutSignal = AbortSignal.timeout(WORKSPACE_SUFFIX_TIMEOUT_MS);

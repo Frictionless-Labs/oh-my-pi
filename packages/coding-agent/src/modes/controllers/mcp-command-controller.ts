@@ -73,7 +73,13 @@ import { theme } from "@oh-my-pi/pi-tui/theme";
 import { col, span, text } from "@oh-my-pi/pi-tui/native/describe";
 import type { NativeNode } from "@oh-my-pi/pi-tui/native/node";
 import type { InteractiveModeContext } from "../types";
-import { groupBySource, parseRemoveArgs, readScopeFlag, showCommandMessage } from "./command-controller-shared";
+import {
+	commandTail,
+	groupBySource,
+	parseRemoveArgs,
+	readScopeFlag,
+	showCommandMessage,
+} from "./command-controller-shared";
 
 import { cfgMcpEnableProjectConfig } from "../../mcp/settings";
 
@@ -530,8 +536,7 @@ export class MCPCommandController {
 	}
 
 	#parseAddCommand(text: string): MCPAddParsed {
-		const prefixMatch = text.match(/^\/mcp\s+add\b\s*(.*)$/i);
-		const rest = prefixMatch?.[1]?.trim() ?? "";
+		const rest = commandTail(text, "/mcp", ["add"]);
 		if (!rest) {
 			return { scope: "project" };
 		}
@@ -643,8 +648,7 @@ export class MCPCommandController {
 	}
 
 	#parseSearchCommand(text: string): MCPSearchParsed {
-		const prefixMatch = text.match(/^\/mcp\s+smithery-search\b\s*(.*)$/i);
-		const rest = prefixMatch?.[1]?.trim() ?? "";
+		const rest = commandTail(text, "/mcp", ["smithery-search"]);
 		const tokens = parseCommandArgs(rest);
 		if (tokens.length === 0) {
 			return {
@@ -1596,8 +1600,7 @@ export class MCPCommandController {
 	 * Handle /mcp remove <name> - Remove a server
 	 */
 	async #handleRemove(text: string): Promise<void> {
-		const match = text.match(/^\/mcp\s+(?:remove|rm)\b\s*(.*)$/i);
-		const rest = match?.[1]?.trim() ?? "";
+		const rest = commandTail(text, "/mcp", ["remove", "rm"]);
 		const parsed = parseRemoveArgs(rest);
 		if (!parsed.ok) {
 			this.ctx.showError(parsed.error);

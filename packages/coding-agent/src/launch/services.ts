@@ -1,5 +1,6 @@
 /** Session-scoped service supervision through the shared project broker. */
 import * as path from "node:path";
+import { linearRegexFind } from "@oh-my-pi/pi-natives";
 import { TERMINAL_STATES } from "@oh-my-pi/pi-tui/apps/ps-data";
 import type { DaemonSnapshot, DaemonSpec } from "@oh-my-pi/pi-tui/tools/daemon";
 import { formatDuration, replaceTabs } from "@oh-my-pi/pi-tui/render/render-utils";
@@ -217,7 +218,7 @@ export async function startService(
 	if (ready && !ready.log && ready.port === undefined) throw new ToolError("ready requires log or port");
 	if (ready?.log) {
 		try {
-			new RegExp(ready.log, "u");
+			linearRegexFind(ready.log, "");
 		} catch (error) {
 			throw new ToolError(`Invalid readiness regex: ${error instanceof Error ? error.message : String(error)}`);
 		}

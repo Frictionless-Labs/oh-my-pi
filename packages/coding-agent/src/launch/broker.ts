@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
-import { FileLock, Process, type PtyRunResult, PtySession } from "@oh-my-pi/pi-natives";
+import { FileLock, linearRegexFind, Process, type PtyRunResult, PtySession } from "@oh-my-pi/pi-natives";
 import { isEnoent, isRecord, logger, postmortem, procmgr, sanitizeText, setProcessName } from "@oh-my-pi/pi-utils";
 import { TerminalQueryResponder } from "@oh-my-pi/pi-utils/vterm";
 import { hostHasInheritableConsole } from "../eval/py/spawn-options";
@@ -98,7 +98,7 @@ interface ManagedDaemon {
 	portReady: boolean;
 	readinessBuffer: string;
 	outputOffset: number;
-	readyPattern?: RegExp;
+	readyPattern?: string;
 	restartTimer?: NodeJS.Timeout;
 	consecutiveFailures: number;
 	completionCapable: boolean;
@@ -299,15 +299,14 @@ class DaemonLog {
 			: truncateTailBytes(combined, LOG_READ_BYTES).text;
 		let text = sanitizeText(terminalOutput);
 		if (grep) {
-			let pattern: RegExp;
 			try {
-				pattern = new RegExp(grep, "u");
+				linearRegexFind(grep, "");
 			} catch (error) {
 				throw new Error(`Invalid log regex: ${error instanceof Error ? error.message : String(error)}`);
 			}
 			text = text
 				.split("\n")
-				.filter(line => pattern.test(line))
+				.filter(line => linearRegexFind(grep, line) !== null)
 				.join("\n");
 		}
 		const options = { maxLines: lines, maxBytes: 256 * 1024 };
@@ -714,7 +713,7 @@ class DaemonBroker {
 			await existing?.log?.close();
 			if (spec.ready?.log) {
 				try {
-					new RegExp(spec.ready.log, "u");
+					linearRegexFind(spec.ready.log, "");
 				} catch (error) {
 					throw new Error(`Invalid readiness regex: ${error instanceof Error ? error.message : String(error)}`);
 				}
@@ -745,7 +744,7 @@ class DaemonBroker {
 				portReady: spec.ready?.port === undefined,
 				readinessBuffer: "",
 				outputOffset: 0,
-				readyPattern: spec.ready?.log ? new RegExp(spec.ready.log, "u") : undefined,
+				readyPattern: spec.ready?.log,
 				consecutiveFailures: 0,
 				persistQueue: Promise.resolve(),
 				completionCapable: owner !== undefined && this.#completionSubscriptions.has(owner),
@@ -975,10 +974,10 @@ class DaemonBroker {
 		if (generation !== record.generation) return;
 		record.readinessBuffer = (record.readinessBuffer + text).slice(-READINESS_BUFFER_CHARS);
 		if (!record.logReady && record.readyPattern) {
-			const match = record.readyPattern.exec(record.readinessBuffer);
-			if (match) {
+			const match = linearRegexFind(record.readyPattern, record.readinessBuffer);
+			if (match !== null) {
 				record.logReady = true;
-				record.snapshot.readyMatch = match[0].slice(0, 500);
+				record.snapshot.readyMatch = match.slice(0, 500);
 				syncReadyPending(record);
 			}
 		}
@@ -1169,10 +1168,11 @@ class DaemonBroker {
 		const boundGeneration = record.generation;
 		await this.#refreshDetached(record);
 		let matched: string | undefined;
-		let pattern: RegExp | undefined;
+		let pattern: string | undefined;
 		if (operation.pattern) {
 			try {
-				pattern = new RegExp(operation.pattern, "u");
+				linearRegexFind(operation.pattern, "");
+				pattern = operation.pattern;
 			} catch (error) {
 				throw new Error(`Invalid wait regex: ${error instanceof Error ? error.message : String(error)}`);
 			}
@@ -1188,9 +1188,9 @@ class DaemonBroker {
 		const condition = (): boolean => {
 			if (generationEnded()) return true;
 			if (pattern) {
-				const match = pattern.exec(record.readinessBuffer);
-				if (match) {
-					matched = match[0].slice(0, 500);
+				const match = linearRegexFind(pattern, record.readinessBuffer);
+				if (match !== null) {
+					matched = match.slice(0, 500);
 					return true;
 				}
 				// No further output can arrive once the process is gone; blocking
@@ -1434,7 +1434,7 @@ class DaemonBroker {
 					portReady: detached && (spec.ready?.port === undefined || snapshot.state === "ready"),
 					readinessBuffer: "",
 					outputOffset: detached ? snapshot.outputBytes : 0,
-					readyPattern: spec.ready?.log ? new RegExp(spec.ready.log, "u") : undefined,
+					readyPattern: spec.ready?.log,
 					consecutiveFailures: 0,
 					persistQueue: Promise.resolve(),
 					// Legacy files are rewritten once into the split layout.

@@ -1,3 +1,4 @@
+import { stripTrailingCharacter } from "@oh-my-pi/pi-utils";
 import { CHARM_HYPER_API_BASE_URL, normalizeCharmHyperBaseUrl } from "../wire/charm-hyper";
 import { CODEX_CLIENT_VERSION } from "../wire/codex";
 import { CURSOR_DEFAULT_BASE_URL } from "../wire/cursor";
@@ -103,7 +104,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			// v3 invalidates zero-price rows written before rich lanes were priced
 			// from the KDL rate card; v4 keys the scope on the token's stable
 			// account subject instead of the rotating JWT.
-			const baseUrl = (options.baseUrl ?? CURSOR_DEFAULT_BASE_URL).replace(/\/+$/, "");
+			const baseUrl = stripTrailingCharacter(options.baseUrl ?? CURSOR_DEFAULT_BASE_URL, "/");
 			const apiKey = options.apiKey ?? "";
 			const scope = `${cursorCredentialSubject(apiKey) ?? apiKey}\u0000${baseUrl}`;
 			return `cursor:rich-models-v4:${Bun.hash(scope).toString(36)}`;

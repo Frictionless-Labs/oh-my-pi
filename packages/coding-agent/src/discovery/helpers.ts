@@ -545,15 +545,32 @@ function lookupEnvValue(varName: string, extraEnv?: Record<string, string>): str
  * Supports ${VAR} and ${VAR:-default} syntax.
  */
 function expandEnvVars(value: string, extraEnv?: Record<string, string>): string {
-	return value.replace(/\$\{([^}:]+)(?::-([^}]*))?\}/g, (_, varName: string, defaultValue?: string) => {
+	let result = "";
+	let cursor = 0;
+	for (;;) {
+		const start = value.indexOf("${", cursor);
+		if (start === -1) return result + value.slice(cursor);
+		const end = value.indexOf("}", start + 2);
+		if (end === -1) return result + value.slice(cursor);
+		const body = value.slice(start + 2, end);
+		const separator = body.indexOf(":-");
+		const varName = separator === -1 ? body : body.slice(0, separator);
+		if (!varName || varName.includes(":")) {
+			result += value.slice(cursor, end + 1);
+			cursor = end + 1;
+			continue;
+		}
+		const defaultValue = separator === -1 ? undefined : body.slice(separator + 2);
 		const envValue = lookupEnvValue(varName, extraEnv);
 		// `${VAR:-default}` follows POSIX `:-`: the default applies when the
 		// variable is unset OR empty. Plain `${VAR}` keeps the value verbatim
 		// (even an empty one) and stays literal when unset.
-		if (envValue !== undefined && (defaultValue === undefined || envValue !== "")) return envValue;
-		if (defaultValue !== undefined) return defaultValue;
-		return `\${${varName}}`;
-	});
+		result += value.slice(cursor, start);
+		if (envValue !== undefined && (defaultValue === undefined || envValue !== "")) result += envValue;
+		else if (defaultValue !== undefined) result += defaultValue;
+		else result += `\${${varName}}`;
+		cursor = end + 1;
+	}
 }
 
 /**

@@ -236,6 +236,7 @@ describe("recoverConflictUriPrefix", () => {
 		});
 		expect(recoverConflictUriPrefix("packages/coding-agent/src/x.ts:conflict://*").path).toBe("conflict://*");
 		expect(recoverConflictUriPrefix("a.ts:conflict://2/theirs").path).toBe("conflict://2/theirs");
+		expect(recoverConflictUriPrefix("a:conflict://old:conflict://2/theirs").path).toBe("conflict://2/theirs");
 	});
 
 	it("passes clean URIs and plain paths through without a note", () => {

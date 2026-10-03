@@ -1,5 +1,5 @@
 import { type } from "@oh-my-pi/omptype";
-import type { FetchImpl } from "@oh-my-pi/pi-utils";
+import { type FetchImpl, stripTrailingCharacter } from "@oh-my-pi/pi-utils";
 import { collapseVariants, type VariantCollapseTable } from "../compat/collapse";
 import type { ModelSpec } from "../types";
 import { discoveryFetch, toPositiveNumber } from "../utils";
@@ -289,5 +289,5 @@ function parseAntigravityDiscoveryResponse(value: unknown): AntigravityDiscovery
 }
 
 function trimTrailingSlashes(value: string): string {
-	return value.replace(/\/+$/, "");
+	return stripTrailingCharacter(value, "/");
 }

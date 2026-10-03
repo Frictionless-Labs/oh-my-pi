@@ -63,4 +63,9 @@ describe("getBracketStrippedModelIdCandidates", () => {
 	test("supports full-width brackets", () => {
 		expect(stripBracketedModelIdAffixes("【供应商】 deepseek-v3 【限时】")).toBe("deepseek-v3");
 	});
+
+	test("strips long repeated affixes without regex backtracking", () => {
+		const affixes = "[vendor] ".repeat(10_000);
+		expect(stripBracketedModelIdAffixes(`${affixes}claude-opus-4-8`)).toBe("claude-opus-4-8");
+	});
 });

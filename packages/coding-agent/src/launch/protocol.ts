@@ -155,9 +155,7 @@ function stringArray(value: unknown, label: string): string[] {
 
 function stringRecord(value: unknown, label: string): Record<string, string> {
 	const source = record(value, label);
-	const result: Record<string, string> = {};
-	for (const key in source) result[key] = rawString(source[key], `${label}.${key}`);
-	return result;
+	return Object.fromEntries(Object.entries(source).map(([key, item]) => [key, rawString(item, `${label}.${key}`)]));
 }
 
 function daemonState(value: unknown): DaemonState {

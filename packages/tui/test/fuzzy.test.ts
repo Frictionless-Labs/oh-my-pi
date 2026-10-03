@@ -42,4 +42,9 @@ describe("fuzzyFilter", () => {
 		expect(fuzzyFilter(items, "搜索", item => item)).toEqual(["搜索历史", "文件搜索"]);
 		expect(fuzzyMatch("搜索", "Settings").matches).toBe(false);
 	});
+
+	it("normalizes adversarial acronym runs without regex backtracking", () => {
+		const candidate = `${"A".repeat(100_000)}ReadyState`;
+		expect(fuzzyMatch("ready state", candidate).matches).toBe(true);
+	});
 });

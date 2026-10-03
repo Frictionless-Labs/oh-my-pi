@@ -29,7 +29,7 @@ import {
 	ShellFsResolve,
 	type ShellFsResponse,
 } from "@oh-my-pi/pi-natives";
-import { isFsError } from "@oh-my-pi/pi-utils";
+import { isFsError, stripTrailingCharacter } from "@oh-my-pi/pi-utils";
 import { TIER_RANK } from "../tools/approval";
 import { UrlContainmentError } from "./filesystem-resource";
 import { parseInternalUrl } from "./parse";
@@ -90,7 +90,7 @@ function parseUrlPath(input: string, spec: SchemeSpec): UrlPath {
 /** `url` followed by `segments`, without doubling the slash after a bare `scheme://`. */
 function appendSegments(url: string, segments: readonly string[]): string {
 	if (segments.length === 0) return url;
-	const trimmed = url.replace(/\/+$/, "");
+	const trimmed = stripTrailingCharacter(url, "/");
 	// Trimming `scheme://` leaves `scheme:`; its segments follow the `//` directly.
 	return trimmed.endsWith(":") ? `${trimmed}//${segments.join("/")}` : `${trimmed}/${segments.join("/")}`;
 }

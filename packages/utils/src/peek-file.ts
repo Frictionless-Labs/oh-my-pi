@@ -54,15 +54,8 @@ export async function peekFile<T>(filePath: string, maxBytes: number, op: (heade
 	if (maxBytes <= 0) {
 		return op(EMPTY_BUFFER);
 	}
-
-	const fileHandle = await fs.promises.open(filePath, "r");
-	try {
-		const buffer = allocateWindow(maxBytes);
-		const { bytesRead } = await fileHandle.read(buffer, 0, buffer.byteLength, 0);
-		return op(buffer.subarray(0, bytesRead));
-	} finally {
-		await fileHandle.close();
-	}
+	const bytes = await Bun.file(filePath).slice(0, maxBytes).bytes();
+	return op(bytes);
 }
 
 /**

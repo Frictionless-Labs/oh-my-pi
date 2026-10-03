@@ -20,7 +20,8 @@ export const CHARM_HYPER_API_BASE_URL = "https://hyper.charm.land/v1";
  * `/v1` segment if it omits one.
  */
 export function normalizeCharmHyperBaseUrl(baseUrl?: string): string {
-	const trimmed = baseUrl?.trim().replace(/\/+$/, "");
+	const trimmed = baseUrl === undefined ? undefined : stripTrailingCharacter(baseUrl.trim(), "/");
 	if (!trimmed) return CHARM_HYPER_API_BASE_URL;
 	return trimmed.endsWith("/v1") ? trimmed : `${trimmed}/v1`;
 }
+import { stripTrailingCharacter } from "@oh-my-pi/pi-utils";

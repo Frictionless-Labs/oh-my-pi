@@ -82,13 +82,22 @@ export function parseVideoTimestamp(value: string): number | null {
  * Pure string split — the caller checks the base resolves to a video file so
  * real filenames containing colons keep precedence.
  */
-const VIDEO_PATH_SELECTOR_RE = /^(.*\.(?:mp4|mov|mkv|webm|m4v|avi|wmv)):(.+)$/is;
+const VIDEO_PATH_SELECTOR_BOUNDARIES = [".mp4:", ".mov:", ".mkv:", ".webm:", ".m4v:", ".avi:", ".wmv:"] as const;
 
 export function splitVideoReadTarget(rawPath: string): { path: string; sel: string } | null {
-	const match = VIDEO_PATH_SELECTOR_RE.exec(rawPath);
-	if (!match) return null;
-	const base = match[1]!;
-	const sel = match[2]!;
+	const lower = rawPath.toLowerCase();
+	let boundary = -1;
+	let boundaryLength = 0;
+	for (const candidate of VIDEO_PATH_SELECTOR_BOUNDARIES) {
+		const index = lower.lastIndexOf(candidate);
+		if (index <= boundary) continue;
+		boundary = index;
+		boundaryLength = candidate.length;
+	}
+	if (boundary < 0) return null;
+	const base = rawPath.slice(0, boundary + boundaryLength - 1);
+	const sel = rawPath.slice(boundary + boundaryLength);
+	if (sel.length === 0) return null;
 	if (!isVideoPath(base) || parseVideoSelector(sel) === null) return null;
 	return { path: base, sel };
 }

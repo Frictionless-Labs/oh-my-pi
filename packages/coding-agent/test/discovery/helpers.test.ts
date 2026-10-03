@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { clearCache } from "@oh-my-pi/pi-coding-agent/capability/fs";
 import type { LoadContext } from "@oh-my-pi/pi-coding-agent/capability/types";
-import { loadFilesFromDir } from "@oh-my-pi/pi-coding-agent/discovery/helpers";
+import { expandEnvVarsDeep, loadFilesFromDir } from "@oh-my-pi/pi-coding-agent/discovery/helpers";
 import { parseFrontmatter, removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 
 describe("parseFrontmatter", () => {
@@ -73,6 +73,15 @@ Body content`;
 			nestedField: { innerKey: "value" },
 		});
 		expect(result.body).toBe("Body content");
+	});
+});
+
+describe("expandEnvVarsDeep", () => {
+	test("expands defaults and leaves malformed repeated placeholders literal", () => {
+		const placeholder = ["$", "{MISSING:-fallback}"].join("");
+		expect(expandEnvVarsDeep({ value: placeholder }, {})).toEqual({ value: "fallback" });
+		const malformed = "${{".repeat(50_000);
+		expect(expandEnvVarsDeep(malformed, {})).toBe(malformed);
 	});
 });
 

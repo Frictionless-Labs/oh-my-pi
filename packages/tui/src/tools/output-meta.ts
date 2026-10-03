@@ -81,8 +81,22 @@ export interface OutputMeta {
 	limits?: LimitsMeta;
 }
 
-// Regex: split on the first `:digits:digits` boundary to separate path from the rest
-const DIAG_PATH_RE = /^(.+?):(\d+:\d+\s+.*)$/;
+function splitDiagnosticPath(message: string): [string, string] | null {
+	for (let firstColon = message.indexOf(":"); firstColon > 0; firstColon = message.indexOf(":", firstColon + 1)) {
+		let cursor = firstColon + 1;
+		const lineStart = cursor;
+		while (cursor < message.length && message.charCodeAt(cursor) >= 48 && message.charCodeAt(cursor) <= 57)
+			cursor += 1;
+		if (cursor === lineStart || message[cursor] !== ":") continue;
+		cursor += 1;
+		const columnStart = cursor;
+		while (cursor < message.length && message.charCodeAt(cursor) >= 48 && message.charCodeAt(cursor) <= 57)
+			cursor += 1;
+		if (cursor === columnStart || message[cursor]?.trim() !== "") continue;
+		return [message.slice(0, firstColon), message.slice(firstColon + 1)];
+	}
+	return null;
+}
 
 /**
  * Reformat pre-formatted diagnostic messages into a multi-level, prefix-folded
@@ -98,13 +112,13 @@ export function formatGroupedDiagnosticMessages(messages: string[]): string {
 	const ungrouped: string[] = [];
 
 	for (const msg of messages) {
-		const match = DIAG_PATH_RE.exec(msg);
-		if (!match) {
+		const diagnostic = splitDiagnosticPath(msg);
+		if (!diagnostic) {
 			ungrouped.push(msg);
 			continue;
 		}
 
-		const [, rawFilePath, rest] = match;
+		const [rawFilePath, rest] = diagnostic;
 		const filePath = rawFilePath.replace(/\\/g, "/");
 		if (!diagnosticsByFile.has(filePath)) {
 			diagnosticsByFile.set(filePath, []);

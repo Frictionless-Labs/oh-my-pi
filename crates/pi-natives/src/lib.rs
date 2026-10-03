@@ -58,6 +58,7 @@ pub mod vcs;
 pub use pi_ast::language;
 
 pub mod power;
+pub mod safe_regex;
 
 pub mod iso;
 pub mod prof;
