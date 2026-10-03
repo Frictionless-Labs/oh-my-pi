@@ -454,3 +454,23 @@ Append-only evidence for the production-readiness run against the public
 | Files changed | Security/workflow/runtime repairs, regression tests, package changelogs, this ledger, and `SECURITY_EVIDENCE.md`. |
 | Reviewer | Executor. A prior independent review predates this SHA and is not promoted as current evidence. |
 | Secrets check | PASS locally; hosted full-history result remains pending. |
+
+## 2026-10-03T05:23:20Z — Phase 19 exact-head hosted terminal state
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-03T05:23:20Z` |
+| Phase | `19` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| Exact head | `f3bba876cd12da7a68f7aaccc421c70fba9ed832` |
+| Hosted workflow evidence | Security `37097335737`, Nix `37097335790`, and CI `37097335746` completed successfully. All four CodeQL language jobs, dependency/secret audit, Nix, two install-method jobs, three runtime-smoke jobs, Ubuntu quality, and all three Rust jobs passed. |
+| Policy-gate evidence | The separate aggregate CodeQL check failed. Exact merge ref `1a2677ceb543010f62d5c302754d8f89455e8afc` exposes 234 open alerts: three critical, 187 high, and 44 medium. No alert was dismissed or suppressed. |
+| Alert reduction | The `9c3d61409d1f11733c57ad7255b794f344c2832b` predecessor exposed 261 alerts. Bounded remediation removed 27, including every Actions and Python alert. Remaining alerts are 95 polynomial ReDoS, 27 incomplete URL sanitization, 24 bad-code sanitization, 21 Rust invalid-pointer access, three critical Rust hard-coded-cryptographic-value alerts, and 64 other JavaScript alerts. |
+| Exact-head SBOM | External archive generated 2,177 components and reconciled all 565 Bun lock records. SHA-256 is `e9a4584d27c983a8a261533f530e31d7a6835081517da042992e0daadc917da1`; Grype 0.119.0 found no fixed Medium-or-higher vulnerabilities. Retained at `/tmp/omp-f3bba8-sbom.hJvV3n/SBOM.json`. |
+| Canonical runtime evidence | Protected fork `main` remained clean at `717f97f4d22b3d65c4a4eef6a744255d46f4d1a6`; source CLI `--version` exited zero with `omp/18.4.4`. Global `omp`, Ollama, port 11434 listener, approved-SHA file, and Desktop launcher were absent. |
+| Classification | `NO_OP_EVIDENCED` all hosted workflow jobs pass and current Pi source is unaffected; `BLOCK_RELEASE` aggregate CodeQL, required human file/behavior review, contributor-authored sentence, prior-discussion proof or waiver, approved-SHA installation, Finder acceptance, launcher canary, and rollback qualification. |
+| Files changed | This ledger and `SECURITY_EVIDENCE.md`. |
+| Reviewer | Executor. Automated analysis is not the required human approval. |
+| Secrets check | PASS — hosted dependency and full-history scan completed successfully. |
