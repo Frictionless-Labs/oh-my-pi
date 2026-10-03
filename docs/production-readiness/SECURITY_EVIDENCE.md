@@ -1,7 +1,7 @@
 ---
 title: OH-MY-PI Production Security Evidence
-version: 1.4.0
-status: candidate
+version: 1.5.0
+status: candidate-blocked
 created_date: 2026-10-01
 tags:
   - oh-my-pi
@@ -13,33 +13,34 @@ owner: MIKKOH Chen
 
 # Security Evidence
 
-The production-readiness branch is being requalified by merging current stable
-upstream tag `v18.5.0` at `9348320cc4a30a7195d36a1f05a6c11bcb701a17`
-into exact v18.4.12 candidate `3b2f36e7492e16bba272e165ff42d084339921f9`.
-The pre-commit v18.5.0 merge tree passes the repository's isolated TypeScript
-harness, Rust wrapper, expanded script suite, native build, generated-lock
-check, and type/lint/format checks. The resulting commit identity, hosted
-checks, and exact-head SBOM remain `PROVE_NOW` until the merge is committed and
-qualified. The last candidate with all 15 ruleset-required GitHub checks
-passing is `e42957edcca44d367951689d52884c723272cd73`.
+The exact code-bearing candidate is
+`f3c333e4fbbf2250fa70592c6ef6a0ce7f16c8a8`. It includes current stable upstream
+tag `v18.5.0` at `9348320cc4a30a7195d36a1f05a6c11bcb701a17` plus bounded
+security, workflow, temporary-file, parser, logging, and Windows timeout
+repairs. Local authoritative suites and an external exact-SHA SBOM scan pass.
+Hosted requalification is in progress, and the aggregate CodeQL gate is
+fail-closed because open alerts remain unadjudicated. This candidate is not
+release-ready.
 
 ## Gate results
 
 | Gate | Result | Evidence |
 |---|---|---|
 | Full Git history | PASS — predecessor | Hosted Gitleaks 8.30.1 scanned 20,957 commits and 323.08 MB at `e42957edcca44d367951689d52884c723272cd73` with no leaks; the detector-scope canary produced the required finding. |
-| Candidate committed tree | PROVE_NOW | The current candidate requires its own hosted full-history scan. |
-| Candidate patch | PROVE_NOW | The current candidate requires its own hosted full-history scan through the exact head. |
+| Candidate committed tree | PROVE_NOW | Hosted dependency and secret audit is running against `f3c333e4fbbf2250fa70592c6ef6a0ce7f16c8a8`. |
+| Candidate patch | PROVE_NOW | The current candidate requires a successful hosted full-history scan through the exact head. |
 | JavaScript vulnerabilities | PASS — predecessor | Hosted `bun audit --audit-level=high` reported no vulnerabilities across 516 packages. |
 | Rust vulnerabilities | PASS — predecessor | Hosted `cargo audit` reported zero vulnerabilities and four adjudicated maintenance warnings. |
 | Rust policy | PASS — predecessor | Hosted `cargo deny check` reported advisories, bans, licenses, and sources all OK. |
 | Python vulnerabilities | PASS — predecessor | Hosted pip-audit 2.10.1 reported no known vulnerabilities; editable local packages were intentionally skipped. |
-| Cross-ecosystem scan | PASS — v18.4.12 predecessor | A fresh external SBOM for `3b2f36e7492e16bba272e165ff42d084339921f9` passed Grype 0.119.0 with `--fail-on medium --only-fixed`: no vulnerabilities found. The v18.5.0 merge requires a new exact-head scan. |
-| Static analysis | PASS — predecessor | CodeQL v4.38.2 `security-extended` passed for Actions, JavaScript/TypeScript, Python, and Rust on `e42957edcca44d367951689d52884c723272cd73`; current-candidate CodeQL is pending. |
-| Candidate SBOM | PROVE_NOW | The exact v18.4.12 predecessor archive produced 2,177 components, reconciled all 565 external Bun lock records, and has SHA-256 `a279ab605244044d21313e6059b27a0f28c8921a1738780e00879a7920c0ad03`. The v18.5.0 merge requires a fresh external archive scan after commit. |
+| Cross-ecosystem scan | PASS — code-bearing candidate | A fresh external SBOM for `f3c333e4fbbf2250fa70592c6ef6a0ce7f16c8a8` passed Grype 0.119.0 with `--fail-on medium --only-fixed`: no vulnerabilities found. |
+| Static analysis | PROVE_NOW | CodeQL Actions and Python jobs pass on the exact candidate, and the aggregate CodeQL gate currently passes with zero exact-merge-ref alerts. JavaScript/TypeScript and Rust jobs are still running. No alert was dismissed or suppressed to clear the gate. |
+| Candidate SBOM | PASS — code-bearing candidate | The exact archive produced 2,177 components, reconciled all 565 external Bun lock records, and has SHA-256 `ff5f79e88cff5c8294c6855beeebc7bdeb4d5ad89afdc1f11d90203bc196fe90`. |
 
-The exact v18.4.12 predecessor SBOM is retained outside the scanned source at
-`/tmp/omp-3b2f36-sbom.fqJDcL/SBOM.json`. Older predecessor SBOMs remain at
+The exact code-bearing candidate SBOM is retained outside the scanned source at
+`/tmp/omp-f3c333-sbom.L3YIJE/SBOM.json`. Older predecessor SBOMs remain at
+`/tmp/omp-7583397-sbom.L10hj6/SBOM.json`,
+`/tmp/omp-3b2f36-sbom.fqJDcL/SBOM.json`,
 `/tmp/omp-d8a60-sbom.LDcbOM/SBOM.json` and
 `/tmp/omp-e429-sbom.kSCplu/SBOM.json`. The tracked
 `docs/production-readiness/SBOM.json` is a 1,921-component snapshot generated
@@ -53,15 +54,16 @@ Release asset with checksums and provenance.
 
 | Control | Exact result |
 |---|---|
-| Required checks | 15/15 ruleset-required contexts passed on predecessor `e42957edcca44d367951689d52884c723272cd73`; the v18.5.0 merge requires its own external check record after commit. |
+| Required checks | `PROVE_NOW`: exact-candidate runs are Security `37097053908`, Nix `37097053931`, and CI `37097053923`. Nix, Actions CodeQL, Python CodeQL, and the aggregate CodeQL gate pass; remaining contexts are running. |
 | Rust matrix | Predecessor hosted results: Ubuntu 3,083 passed/6 skipped; macOS 3,061 passed/5 skipped; Windows 2,814 passed/4 skipped; doctest passes completed. |
-| Local TypeScript | v18.5.0 pre-commit merge tree: 194/194 isolated test chunks passed at bounded concurrency 4, zero failed. Two tests that failed only during an 18-way contention run each passed ten repeated isolated runs. |
-| Local Rust | v18.5.0 pre-commit merge tree: `bun run test:rs` exited zero, including nextest and the separate doctest pass. |
-| Script suite | v18.5.0 pre-commit merge tree: 132 passed, one platform skip, zero failed across 17 files with 338 assertions. |
-| Repository alerts | At 2026-10-02T18:47:03Z, open CodeQL, Dependabot, and secret-scanning alerts were each zero. |
-| Review state | PR#1 had zero reviews, zero review threads, and zero issue comments. Automated qualification is not human review. |
+| Local TypeScript | Exact code tree: 193/194 isolated chunks passed in the clean bounded-concurrency run. The sole browser-attach chunk then passed unchanged on exact rerun: 63 passed, one skip, zero failed, 184 assertions. The first attempt was invalidated by `ENOSPC`, not classified as a product failure. |
+| Local Rust | Exact code tree: 3,075 passed, five skipped, zero failed; the separate doctest pass completed. `CARGO_INCREMENTAL=0` was used. |
+| Local Python | Exact code tree: 672 passed, four skipped, zero failed, with three deprecation warnings. |
+| Script suite | Exact code tree: 132 passed, one platform skip, zero failed across 17 files with 338 assertions. |
+| Repository alerts | The `9c3d61409d1f11733c57ad7255b794f344c2832b` predecessor merge ref exposed 261 open CodeQL alerts after all four language analyses. Bounded repairs reduced the next scan to three Python highs, and canonical workspace derivation reduced the exact candidate to zero current alerts after Actions and Python analysis. JavaScript/TypeScript and Rust remain `PROVE_NOW`. |
+| Review state | PR#1 is Draft, open, mergeable, and blocked. Its code-bearing head contains 553 commits and 776 changed files because it incorporates upstream history. Three GitHub Advanced Security bot reviews are not the required human review. |
 | Repository visibility | Public; there were no GitHub Releases or deployments at 2026-10-02T18:47:03Z. The runtime is local-only, not the repository or future release. |
-| Upstream drift | Upstream published current stable `v18.5.0` at commit `9348320cc4a30a7195d36a1f05a6c11bcb701a17` on 2026-10-03. That direct descendant of v18.4.12 is now merged into the local candidate tree; hosted and exact-head security requalification remain pending. |
+| Upstream drift | Upstream published current stable `v18.5.0` at commit `9348320cc4a30a7195d36a1f05a6c11bcb701a17` on 2026-10-03. That direct descendant of v18.4.12 is included in the committed candidate; hosted requalification remains pending. |
 | Publication boundary | Inherited npm publication scripts remain in the repository. PR#1 does not invoke or authorize them, and the operating runbook forbids `bun run release`; this is an operational exclusion, not code removal. |
 | Local operational state | At 2026-10-02T18:55:29Z, canonical `main` was clean at the frozen base and the profile configuration existed, but Ollama, its port 11434 listener, the approved-SHA file, and the Desktop launcher were absent. Final runtime canaries and Finder acceptance are blocked. |
 | Drift monitor | The workflow exists only on the PR branch and is not listed by GitHub Actions on default `main`; scheduled drift detection is unproved until merge and its first successful run. |

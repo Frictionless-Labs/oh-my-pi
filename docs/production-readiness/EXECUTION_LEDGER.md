@@ -431,3 +431,26 @@ Append-only evidence for the production-readiness run against the public
 | Files changed | Upstream `v18.5.0` merge; conflict resolutions; generated Bazel lock; two Rust test integration repairs; this ledger and `SECURITY_EVIDENCE.md`. |
 | Reviewer | Executor. |
 | Secrets check | PASS — no credentials or private payloads were printed or added. |
+
+## 2026-10-03T04:32:46Z — Phase 18 exact-candidate security closure
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-03T04:32:46Z` |
+| Phase | `18` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| Code-bearing HEAD | `f3c333e4fbbf2250fa70592c6ef6a0ce7f16c8a8` |
+| Command | CodeQL alert triage; focused RED/GREEN tests; `bun check`; isolated TypeScript harness; Rust wrapper with `CARGO_INCREMENTAL=0`; full Python and script suites; exact-SHA archive; external Syft 1.52.0 SBOM augmentation; Grype 0.119.0 `--fail-on medium --only-fixed`; hosted check inspection |
+| Exit code | `0` for every authoritative local gate. The first TypeScript attempt exited nonzero after the filesystem reached `ENOSPC`; only the validated 8.0 GiB reproducible Rust incremental cache was removed, and the clean rerun plus exact failed-chunk rerun passed. |
+| Security repairs | Workflow inputs no longer cross an Actions shell boundary without validation. Python workspace binding and log fields reject path aliases and control characters. JSON recovery preserves `__proto__` as data. Blob and shell-snapshot files use exclusive, private, no-follow creation and cleanup. The TTSR AST prefilter no longer evaluates an avoidable regular expression. Windows cancellation deadlines treat equality as elapsed. |
+| Local proof | `bun check` passed with one pre-existing warning. Rust: 3,075 passed, five skipped, plus doctests. Python: 672 passed, four skipped. Scripts: 132 passed, one skipped, 338 assertions. TypeScript: 193/194 chunks in the clean run; the sole browser-attach chunk passed unchanged on exact rerun with 63 passed, one skipped, and 184 assertions. |
+| SBOM evidence | Fresh external exact-SHA SBOM: 2,177 components, all 565 Bun lock records, SHA-256 `ff5f79e88cff5c8294c6855beeebc7bdeb4d5ad89afdc1f11d90203bc196fe90`; Grype found no fixed Medium-or-higher vulnerabilities. Retained at `/tmp/omp-f3c333-sbom.L3YIJE/SBOM.json`. |
+| Hosted evidence | Runs Security `37097053908`, Nix `37097053931`, and CI `37097053923` target the exact code-bearing SHA. Nix, Actions CodeQL, Python CodeQL, and the aggregate CodeQL gate pass. Remaining jobs are running. |
+| Alert evidence | The `9c3d61409d1f11733c57ad7255b794f344c2832b` predecessor merge ref exposed 261 alerts. Bounded repairs reduced the next scan to three Python highs. Canonical typed workspace derivation then reduced the exact candidate to zero current alerts after Actions and Python analysis. No alert was dismissed or suppressed; JavaScript/TypeScript and Rust remain `PROVE_NOW`. |
+| PR state | PR#1 is Draft, open, mergeable, and blocked. Its code-bearing head contains 553 commits and 776 changed files after current upstream history was integrated. |
+| Classification | `FIX_NOW` bounded remediations completed locally; `PROVE_NOW` exact-candidate hosted conclusions and alert inventory; `BLOCK_RELEASE` unresolved CodeQL findings, human review and contributor attestation, prior-discussion proof or waiver, approved-SHA installation, Finder acceptance, launcher canary, and rollback qualification. |
+| Files changed | Security/workflow/runtime repairs, regression tests, package changelogs, this ledger, and `SECURITY_EVIDENCE.md`. |
+| Reviewer | Executor. A prior independent review predates this SHA and is not promoted as current evidence. |
+| Secrets check | PASS locally; hosted full-history result remains pending. |
