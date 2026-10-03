@@ -390,3 +390,23 @@ Append-only evidence for the production-readiness run against the public
 | Files changed | `scripts/production-readiness/Open-Pi.command`; `scripts/production-readiness/Open-Pi.test.ts`; `scripts/production-readiness/generate-sbom.ts`; `scripts/production-readiness/generate-sbom.test.ts`; this ledger and `SECURITY_EVIDENCE.md`. |
 | Reviewer | Independent Codex reviewer plus executor remediation. |
 | Secrets check | PASS — only public commit IDs, tool versions, test totals, and artifact digests were retained. |
+
+## 2026-10-03T02:04:10Z — Phase 16 upstream v18.4.12 local requalification
+
+| Field | Value |
+|---|---|
+| Timestamp | `2026-10-03T02:04:10Z` |
+| Phase | `16` |
+| Mode | `FIX` |
+| CWD | `/Users/mikkohchen/Developer/frictionless-labs/oh-my-pi/.worktrees/production-readiness` |
+| Branch | `codex/oh-my-pi-production-readiness` |
+| Predecessor HEAD | `3b99d9d8c908c281f7d16ac2cb965c14f8f95abe` |
+| Upstream merge head | `7318a70cf4ed04133366884d2723f72d9d490a15` (`v18.4.12`) |
+| Command | Frozen install; Bazel lock check; native build; two diagnostic monolithic test runs; isolated TypeScript harness; Rust wrapper; script suite; `bun check`; focused Python prelude tests; `git diff --check` |
+| Exit code | `0` for every authoritative gate. Both diagnostic monolithic runs exited `1` with late-suite failures consistent with shared-state/resource contamination; the isolated harness passed every affected area. |
+| Output evidence | Frozen install completed with 414 installs and 583 packages. `bun run ci:test:ts` passed 193/193 fresh-process chunks. `bun run test:rs` completed nextest and doctests with zero failures. Script tests passed 45/45 with 126 assertions. `bun check`, native build, Bazel lock validation, and focused Python prelude tests passed. |
+| Compatibility repair | `/usr/bin/python3` is Python 3.9.6, inside the documented Python 3.8+ runtime contract. The prelude now feature-detects `types.UnionType`, which is absent before Python 3.10; the failing Python schema-inference test passed after the targeted repair. |
+| Classification | `FIX_NOW` upstream merge and Python compatibility completed locally; `PROVE_NOW` committed candidate identity, hosted checks, exact-head SBOM, vulnerability scan, and final review; `BLOCK_RELEASE` human contribution attestation, Finder acceptance, launcher canary, and rollback qualification. |
+| Files changed | Upstream `v18.4.12` merge; conflict resolutions in `MODULE.bazel.lock`, `crates/pi-edit/src/path_policy.rs`, and `package.json`; Python 3.9 compatibility repair; this ledger and `SECURITY_EVIDENCE.md`. |
+| Reviewer | Executor. |
+| Secrets check | PASS — no credentials or private payloads were printed or added. |

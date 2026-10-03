@@ -528,7 +528,8 @@ if "__omp_prelude_loaded__" not in globals():
             return schema
         if origin is typing.Literal:
             return {"enum": list(args)}
-        if origin in (typing.Union, types.UnionType):
+        union_type = getattr(types, "UnionType", None)
+        if origin is typing.Union or (union_type is not None and origin is union_type):
             non_null = [item for item in args if item is not type(None)]
             if len(non_null) == 1 and len(non_null) != len(args):
                 return {
@@ -735,10 +736,9 @@ if "__omp_prelude_loaded__" not in globals():
             return bool(result.get("cancelled")) if isinstance(result, dict) else False
 
         def __await__(self):
-            return asyncio.get_running_loop().run_in_executor(
-                None,
-                self.wait,
-            ).__await__()
+            # `to_thread` copies the cell's contextvars into the worker; a bare
+            # `run_in_executor` drops them, so the bridge loses its run identity.
+            return asyncio.to_thread(self.wait).__await__()
 
     class AgentHandle(_Handle):
         """Background subagent handle returned by ``agent()``."""
