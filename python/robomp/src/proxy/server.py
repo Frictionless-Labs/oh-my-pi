@@ -212,16 +212,14 @@ def _pool_dir(cfg: Settings, repo: str) -> Path:
     return Path(cfg.workspace_root) / "_pool" / repo.replace("/", "__")
 
 
-def _workspace_repo_dir(cfg: Settings, workspace_key: str) -> Path:
-    if not re.fullmatch(
-        r"[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*__(?:[1-9][0-9]*|release)",
-        workspace_key,
-    ):
-        raise HTTPException(400, f"invalid workspace_key {workspace_key!r}")
-    return Path(cfg.workspace_root) / workspace_key / "repo"
+def _workspace_repo_dir(cfg: Settings, repo: str, number: int | str) -> Path:
+    _validate_repo_name(repo)
+    if number != "release" and (not isinstance(number, int) or isinstance(number, bool) or number < 1):
+        raise HTTPException(400, "invalid workspace identity")
+    return Path(cfg.workspace_root) / compute_workspace_key(repo, number) / "repo"
 
 
-def _require_workspace_key(repo: str, workspace_key: str, *, release: bool) -> str:
+def _require_workspace_key(repo: str, workspace_key: str, *, release: bool) -> int | str:
     _validate_repo_name(repo)
     suffix = "release" if release else None
     prefix = repo.replace("/", "__") + "__"
@@ -231,9 +229,13 @@ def _require_workspace_key(repo: str, workspace_key: str, *, release: bool) -> s
     if suffix is not None:
         if number != suffix:
             raise HTTPException(400, "workspace_key does not match release workspace")
-    elif not re.fullmatch(r"[1-9][0-9]*", number):
+        return suffix
+    if not number.isascii() or not number.isdecimal() or number.startswith("0"):
         raise HTTPException(400, "workspace_key does not identify an issue workspace")
-    return workspace_key
+    issue_number = int(number)
+    if compute_workspace_key(repo, issue_number) != workspace_key:
+        raise HTTPException(400, "workspace_key does not match canonical issue workspace")
+    return issue_number
 
 
 def _resolve_token(cfg: Settings) -> str:
@@ -928,8 +930,8 @@ def create_proxy_app(settings: Settings) -> FastAPI:
         branch = _require_branch(data.get("branch"))
         expected_head = _require_str(data.get("expected_head"), "expected_head")
         slot_uid = _optional_slot_uid(data.get("slot_uid"))
-        workspace_key = _require_workspace_key(repo, workspace_key, release=False)
-        repo_dir = _workspace_repo_dir(settings, workspace_key)
+        issue_number = _require_workspace_key(repo, workspace_key, release=False)
+        repo_dir = _workspace_repo_dir(settings, repo, issue_number)
         if not repo_dir.is_dir():
             raise HTTPException(404, f"workspace not found: {workspace_key}")
         remote = await asyncio.to_thread(
@@ -966,8 +968,8 @@ def create_proxy_app(settings: Settings) -> FastAPI:
         tag = _require_release_tag(data.get("tag"))
         expected_head = _require_str(data.get("expected_head"), "expected_head")
         slot_uid = _optional_slot_uid(data.get("slot_uid"))
-        workspace_key = _require_workspace_key(repo, workspace_key, release=True)
-        repo_dir = _workspace_repo_dir(settings, workspace_key)
+        release_identity = _require_workspace_key(repo, workspace_key, release=True)
+        repo_dir = _workspace_repo_dir(settings, repo, release_identity)
         if not repo_dir.is_dir():
             raise HTTPException(404, f"workspace not found: {workspace_key}")
         remote = await asyncio.to_thread(
