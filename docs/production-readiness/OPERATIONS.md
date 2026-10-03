@@ -1,90 +1,83 @@
 ---
-title: OH-MY-PI Zero-Cost Production Operations
-version: 1.0.0
-status: candidate
-created_date: 2026-10-01
+title: OH-MY-PI Fresh Stack Operations
+version: 2.0.0
+status: blocked
+created_date: 2026-10-03
 tags:
   - oh-my-pi
   - operations
   - rollback
-confidence: 97
+confidence: 98
 owner: MIKKOH Chen
 ---
 
-# Production Operations
+# Operations
 
-## Approved operating boundary
+## Current operating boundary
 
-| Control | Approved value |
+| Control | State |
 |---|---|
-| Repository | `Frictionless-Labs/oh-my-pi` |
-| Upstream baseline | `v18.4.8@717f97f4d22b3d65c4a4eef6a744255d46f4d1a6` |
-| Fork release tag | `v18.4.8+frictionless.1` |
-| Runtime | Ollama 0.35.0, loopback only, cloud disabled |
-| Model | `qwen3-coder:30b` |
-| Model digest | `06c1097efce0431c2045fe7b2e5108366e43bee1b4603a7aded8f21689e90bca` |
-| OMP profile | `frictionless-local` |
-| Mandatory service cost | `$0` |
+| Canonical repository | `Frictionless-Labs/oh-my-pi` |
+| Source baseline | Upstream `v18.5.0@9348320cc4a30a7195d36a1f05a6c11bcb701a17` |
+| Fresh code candidate | `e31c536eae2222224255e1f25719df5881f4be26` |
+| Mandatory service cost | `$0`; existing local/OSS stack only |
+| Registry publication | Prohibited |
+| Merge or release | Not authorized and not ready |
+| Approved-SHA file | Not installed |
+| Finder acceptance | Not run |
 
-No package registry publication is authorized. GitHub-hosted public-repository
-CI, local Ollama inference, and the local model are the only mandatory runtime
-dependencies.
+The implementation is a source candidate, not a production release. Local Pi
+continues to work from existing installations; discarding or superseding PR#1
+does not remove those installations. The fresh stack must not be installed as
+the approved runtime until every gate below closes.
 
-## Launcher contract
+## Review and integration order
 
-`Open-Pi.command` refuses to launch unless all of these are true:
+| Step | Branch | Required acceptance |
+|---:|---|---|
+| 1 | `codex/oh-my-pi-upstream-v18-5` | Exact upstream tag and ancestry. |
+| 2 | `codex/oh-my-pi-runtime-foundation` | Runtime/launcher behavior and focused tests. |
+| 3 | `codex/oh-my-pi-operations-governance` | Workflow permissions, CI boundaries, and release exclusions. |
+| 4 | `codex/oh-my-pi-windows-correctness` | Hosted Windows plus macOS/Linux parity. |
+| 5 | `codex/oh-my-pi-owned-source-security` | CodeQL, dependency audits, and owned-source review. |
+| 6 | `codex/oh-my-pi-readiness-evidence` | Evidence accuracy only; no functional expansion. |
 
-- The canonical checkout is clean `main` at the owner-only approved SHA.
-- Bun is at least 1.4 and locked dependencies/native/generated assets exist.
-- Ollama cloud is disabled and the server listens only on loopback.
-- The exact approved model digest is installed.
-- The isolated profile exposes only the approved Ollama model.
-- Telemetry export is disabled before the CLI starts.
+Each pull request must target the prior branch until the stack is reviewed.
+After all layers are accepted, the maintainer may retarget or merge them in
+order. No pull request may be created by automation until MIKKOH completes the
+repository’s human-contributor policy.
 
-The tracked launcher and Desktop copy must remain byte-identical. Operational
-logs record event names only; they do not record prompts, model output,
-credentials, or repository contents.
+## Release gates
 
-## Release procedure
-
-1. Require green local gates, candidate-hosted gates, and CodeQL results on
-   the exact candidate SHA.
-2. Merge through the active `main` ruleset without force or history rewrite.
-3. Verify the merged SHA, create the annotated fork tag, and build binaries
-   with `bun scripts/ci-release-build-binaries.ts` only.
-4. Generate checksums, CycloneDX SBOM, release notes, and a provenance manifest
-   that all identify the merged SHA.
-5. Create the GitHub Release and verify every downloaded asset checksum.
-6. Write the exact merged SHA to the owner-only local approved-SHA file.
-7. Rebuild the canonical checkout and run the Terminal and Finder launcher
-   acceptance suites before declaring the release complete.
-
-Never run `bun run release`; it includes registry publication behavior outside
-this operating boundary.
+| Gate | Current state | Closure |
+|---|---|---|
+| Human understanding | BLOCKED | MIKKOH writes one sentence in MIKKOH’s own words for each PR. |
+| Personal exercise | BLOCKED | MIKKOH reviews the diff and exercises the changed behavior. |
+| Hosted CI | BLOCKED | Exact focused-stack SHA passes Linux, macOS, and Windows. |
+| CodeQL | BLOCKED | Resolve or formally disposition all 9 live alerts. |
+| Artifact vulnerabilities | BLOCKED | Clear or prove exclusion of the 11 SBOM findings. |
+| Merge | BLOCKED | Branch rules, reviews, and checks pass. |
+| Release | BLOCKED | Merged-SHA SBOM, checksums, provenance, canary, rollback, and Finder acceptance pass. |
 
 ## Rollback
 
-The archived pre-synchronization fork is protected by
-`frictionless-baseline-20260930` at
-`969a94c1eeccb1b7528cd5621934bca1908ab622`. Validate rollback only in a
-disposable worktree; never reset or rewrite canonical `main`.
-
-| Objective | Target | Proof |
+| Layer | Rollback target | Constraint |
 |---|---|---|
-| RPO | Zero commits | Immutable baseline tag and release tag preserve both states. |
-| RTO | At most 30 minutes | Timed disposable-worktree restore/build probe. |
-| Canonical safety | No mutation | Rollback exercise uses a separate worktree. |
+| Fresh review stack | Prior focused branch SHA | Revert through a new commit; never rewrite published history. |
+| Existing PR#1 | Preserved Draft PR#1 head `9a7703654d51345120c3e4202a46412fc4ae8ff7` | Keep as historical evidence until the fresh stack is accepted. |
+| Fork baseline | `main@717f97f4d22b3d65c4a4eef6a744255d46f4d1a6` | Do not reset or force-push canonical main. |
+| Runtime | Existing installed Pi/Ollama state | Do not replace until release and launcher gates pass. |
 
-## Continuous controls
+## Stop condition
 
-| Control | Schedule | Failure behavior |
-|---|---|---|
-| Full cross-platform CI | Wednesday 05:41 UTC | GitHub workflow notification |
-| CodeQL and dependency/secret audit | Monday 06:17 UTC | GitHub workflow notification |
-| Upstream release/divergence monitor | Monday 07:23 UTC | Fails on baseline tag drift or newer stable release |
-| Dependabot | Weekly | Opens dependency pull requests, never issues |
-| Launcher self-check | Every launch | Stops before model execution |
+`CODEX_OH_MY_PI_FRESH_STACK_BLOCKED_CODEQL_HUMAN_POLICY_HOSTED_CI`
 
-All workflows have explicit timeouts, read-only default permissions, immutable
-third-party action SHAs, and no paid runner, registry, telemetry, or alerting
-dependency.
+## After completion
+
+| Outcome | Next action |
+|---|---|
+| Human policy complete | Create Draft PRs in stack order. |
+| Hosted check fails | Fix only the owning layer; rerun the exact gate. |
+| All PR gates green | Obtain human approvals, then merge in order. |
+| Merged SHA qualified | Generate release artifacts in a disposable workspace. |
+| Any security gate unresolved | Do not merge, tag, publish, approve, or install. |
