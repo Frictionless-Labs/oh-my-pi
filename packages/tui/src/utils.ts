@@ -231,8 +231,26 @@ export function getSegmenter(): Intl.Segmenter {
 // or ST. `Bun.stringWidth` strips the whole span (payload included) to zero
 // cells, but the payload is visible and scales by the `s=` factor, so each is
 // added back so width matches the native truncate/slice/wrap helpers.
-const OSC66_SPAN_REGEX = /\x1b\]66;([^;]*);([\s\S]*?)(?:\x07|\x1b\\)/g;
 const OSC66_PREFIX = "\x1b]66;";
+const STRING_TERMINATOR = "\x1b\\";
+
+function* osc66Spans(text: string): Generator<{ metadata: string; payload: string }> {
+	let cursor = 0;
+	for (;;) {
+		const start = text.indexOf(OSC66_PREFIX, cursor);
+		if (start === -1) return;
+		const metadataStart = start + OSC66_PREFIX.length;
+		const metadataEnd = text.indexOf(";", metadataStart);
+		if (metadataEnd === -1) return;
+		const payloadStart = metadataEnd + 1;
+		const bell = text.indexOf("\x07", payloadStart);
+		const st = text.indexOf(STRING_TERMINATOR, payloadStart);
+		if (bell === -1 && st === -1) return;
+		const payloadEnd = bell !== -1 && (st === -1 || bell < st) ? bell : st;
+		yield { metadata: text.slice(metadataStart, metadataEnd), payload: text.slice(payloadStart, payloadEnd) };
+		cursor = payloadEnd + (payloadEnd === bell ? 1 : STRING_TERMINATOR.length);
+	}
+}
 // APC sequences (`ESC _ ... ST|BEL`) — Kitty graphics commands such as the
 // virtual-placement prefix on Unicode-placeholder image lines, or the TUI's
 // BEL-terminated cursor marker. `Bun.stringWidth` strips CSI/OSC but counts APC
@@ -373,11 +391,10 @@ export function visibleWidth(str: string): number {
 	if (tabCount > 0) width += tabCount * DEFAULT_TAB_WIDTH;
 
 	if (hasEsc && str.includes(OSC66_PREFIX)) {
-		OSC66_SPAN_REGEX.lastIndex = 0;
-		for (let m = OSC66_SPAN_REGEX.exec(str); m !== null; m = OSC66_SPAN_REGEX.exec(str)) {
+		for (const span of osc66Spans(str)) {
 			let scale = 1;
 			let explicit: number | undefined;
-			for (const part of m[1].split(":")) {
+			for (const part of span.metadata.split(":")) {
 				if (part.indexOf("=") !== 1) continue;
 				const value = Number.parseInt(part.slice(2), 10);
 				if (!Number.isFinite(value)) continue;
@@ -387,7 +404,7 @@ export function visibleWidth(str: string): number {
 					explicit = value;
 				}
 			}
-			width += scale * (explicit ?? Bun.stringWidth(m[2], STRING_WIDTH_OPTS));
+			width += scale * (explicit ?? Bun.stringWidth(span.payload, STRING_WIDTH_OPTS));
 		}
 	}
 
@@ -479,9 +496,8 @@ export function isOsc66Line(line: string): boolean {
 export function osc66MaxScale(line: string): number {
 	if (!line.includes(OSC66_PREFIX)) return 1;
 	let max = 1;
-	OSC66_SPAN_REGEX.lastIndex = 0;
-	for (let m = OSC66_SPAN_REGEX.exec(line); m !== null; m = OSC66_SPAN_REGEX.exec(line)) {
-		for (const part of m[1].split(":")) {
+	for (const span of osc66Spans(line)) {
+		for (const part of span.metadata.split(":")) {
 			if (part.indexOf("=") !== 1 || part[0] !== "s") continue;
 			const value = Number.parseInt(part.slice(2), 10);
 			if (Number.isFinite(value) && value > max && value <= 7) max = value;

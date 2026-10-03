@@ -10,6 +10,46 @@ import { withTimeoutSignal } from "../utils/fetch-timeout";
 
 /** Per-request abort deadline for each OAuth discovery metadata fetch. */
 const DISCOVERY_FETCH_TIMEOUT_MS = 10_000;
+const MAX_OAUTH_ERROR_CHARS = 16 * 1024;
+
+function boundedOAuthErrorMessage(message: string): string {
+	if (message.length <= MAX_OAUTH_ERROR_CHARS) return message;
+	const half = MAX_OAUTH_ERROR_CHARS / 2;
+	return `${message.slice(0, half)}\n${message.slice(-half)}`;
+}
+
+function isParameterStart(character: string | undefined): boolean {
+	if (character === undefined) return false;
+	const code = character.charCodeAt(0);
+	return (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a) || code === 0x5f;
+}
+
+function isParameterPart(character: string | undefined): boolean {
+	if (isParameterStart(character)) return true;
+	if (character === undefined) return false;
+	const code = character.charCodeAt(0);
+	return (code >= 0x30 && code <= 0x39) || code === 0x2d;
+}
+
+function quotedChallengeParameters(message: string): Array<[string, string]> {
+	const parameters: Array<[string, string]> = [];
+	let cursor = 0;
+	while (cursor < message.length) {
+		if (!isParameterStart(message[cursor])) {
+			cursor += 1;
+			continue;
+		}
+		const keyStart = cursor;
+		while (isParameterPart(message[cursor])) cursor += 1;
+		if (message[cursor] !== "=" || message[cursor + 1] !== '"') continue;
+		const valueStart = cursor + 2;
+		const valueEnd = message.indexOf('"', valueStart);
+		if (valueEnd < 0) break;
+		parameters.push([message.slice(keyStart, cursor), message.slice(valueStart, valueEnd)]);
+		cursor = valueEnd + 1;
+	}
+	return parameters;
+}
 
 export interface OAuthEndpoints {
 	authorizationUrl: string;
@@ -76,8 +116,7 @@ export function extractMcpAuthServerUrl(error: Error, serverUrl?: string): strin
  * `undefined` when the challenge does not carry one.
  */
 export function extractOAuthChallengeScopes(error: Error): string | undefined {
-	const entries = error.message.matchAll(/([a-zA-Z_][a-zA-Z0-9_-]*)="([^"]+)"/g);
-	for (const [, rawKey, value] of entries) {
+	for (const [rawKey, value] of quotedChallengeParameters(boundedOAuthErrorMessage(error.message))) {
 		const key = rawKey.toLowerCase();
 		if ((key === "scope" || key === "scopes") && value.trim() !== "") {
 			return value;
@@ -91,7 +130,7 @@ export function extractOAuthChallengeScopes(error: Error): string | undefined {
  * Looks for WWW-Authenticate header format or JSON error bodies.
  */
 export function extractOAuthEndpoints(error: Error): OAuthEndpoints | null {
-	const errorMsg = error.message;
+	const errorMsg = boundedOAuthErrorMessage(error.message);
 
 	const readEndpointsFromObject = (obj: Record<string, unknown>): OAuthEndpoints | null => {
 		const authorizationUrl =
@@ -156,9 +195,10 @@ export function extractOAuthEndpoints(error: Error): OAuthEndpoints | null {
 	try {
 		// Try to parse as JSON error response
 		// Many MCP servers return JSON with OAuth endpoints in error body
-		const jsonMatch = errorMsg.match(/\{[\s\S]*\}/);
-		if (jsonMatch) {
-			const errorBody = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+		const jsonStart = errorMsg.indexOf("{");
+		const jsonEnd = errorMsg.lastIndexOf("}");
+		if (jsonStart >= 0 && jsonEnd > jsonStart) {
+			const errorBody = JSON.parse(errorMsg.slice(jsonStart, jsonEnd + 1)) as Record<string, unknown>;
 
 			// Check for OAuth endpoints in error body
 			if (errorBody.oauth || errorBody.authorization || errorBody.auth) {
@@ -186,10 +226,10 @@ export function extractOAuthEndpoints(error: Error): OAuthEndpoints | null {
 		// Not JSON, continue with other detection methods
 	}
 
-	const challengeEntries = Array.from(errorMsg.matchAll(/([a-zA-Z_][a-zA-Z0-9_-]*)="([^"]+)"/g));
+	const challengeEntries = quotedChallengeParameters(errorMsg);
 	if (challengeEntries.length > 0) {
 		const challengeValues = new Map<string, string>();
-		for (const [, rawKey, value] of challengeEntries) {
+		for (const [rawKey, value] of challengeEntries) {
 			challengeValues.set(rawKey.toLowerCase(), value);
 		}
 
@@ -217,18 +257,6 @@ export function extractOAuthEndpoints(error: Error): OAuthEndpoints | null {
 				resource,
 			};
 		}
-	}
-
-	// Try to extract from WWW-Authenticate header format
-	// Example: Bearer realm="https://auth.example.com/oauth/authorize" token_url="https://auth.example.com/oauth/token"
-	const wwwAuthMatch = errorMsg.match(/realm="([^"]+)".*token_url="([^"]+)"/);
-	if (wwwAuthMatch) {
-		return {
-			authorizationUrl: wwwAuthMatch[1],
-			tokenUrl: wwwAuthMatch[2],
-			clientId: clientIdFromAuthUrl(wwwAuthMatch[1]),
-			scopes: scopeFromAuthUrl(wwwAuthMatch[1]),
-		};
 	}
 
 	return null;

@@ -12,8 +12,6 @@ export interface PromptFormatOptions {
 }
 
 // Opening XML tag (not self-closing, not closing)
-const OPENING_XML = /^<([a-z_-]+)(?:\s+[^>]*)?>$/;
-
 /**
  * Closing XML tag matcher, manual equivalent of `/^<\/([a-z_-]+)>$/` — avoids a
  * RegExp exec (and match array allocation) per `<`-prefixed line. Caller
@@ -47,9 +45,10 @@ function openingTagName(s: string): string | null {
 	if (j === n - 1) return s.slice(1, j); // `<tag>`
 	const c = s.charCodeAt(j);
 	if (c !== 32 /* space */ && c !== 9 /* tab */) {
-		if (c < 128) return null;
-		const match = OPENING_XML.exec(s);
-		return match ? match[1] : null;
+		// The old fallback regex only existed to recognize non-ASCII Unicode
+		// whitespace. A single-character trim preserves that contract without
+		// running an unbounded expression over the whole prompt line.
+		if (c < 128 || s[j]?.trim() !== "") return null;
 	}
 	// `\s+[^>]*>$` ⇔ no further `>` before the final char.
 	return s.indexOf(">", j + 1) === n - 1 ? s.slice(1, j) : null;

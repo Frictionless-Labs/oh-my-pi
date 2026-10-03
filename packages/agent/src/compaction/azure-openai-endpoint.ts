@@ -1,5 +1,5 @@
 import type { Model } from "@oh-my-pi/pi-ai";
-import { $env } from "@oh-my-pi/pi-utils";
+import { $env, stripTrailingCharacter } from "@oh-my-pi/pi-utils";
 
 const DEFAULT_AZURE_API_VERSION = "v1";
 
@@ -14,7 +14,7 @@ export function resolveAzureOpenAiBaseUrl(model: Model): string {
 			"Azure OpenAI base URL is required. Set AZURE_OPENAI_BASE_URL or AZURE_OPENAI_RESOURCE_NAME, or configure model.baseUrl.",
 		);
 	}
-	return resolvedBaseUrl.replace(/\/+$/, "");
+	return stripTrailingCharacter(resolvedBaseUrl, "/");
 }
 
 /** Append `api-version` unless the endpoint already carries one. */

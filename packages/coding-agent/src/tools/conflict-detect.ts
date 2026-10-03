@@ -228,7 +228,7 @@ const CONFLICT_URI_RE = /^conflict:\/\/(.+)$/;
 // `path/to/file.ts:conflict://3`: the agent mixed the `:conflicts` read
 // selector with the `conflict://` scheme. The prefix is greedy so the LAST
 // `:conflict://` wins for multi-colon inputs.
-const PREFIXED_CONFLICT_URI_RE = /^(.+):(conflict:\/\/.+)$/;
+const CONFLICT_URI_PREFIX_SEPARATOR = ":conflict://";
 
 /**
  * Tool-entry normalization for a `<file>:conflict://…` target, which is not a
@@ -236,9 +236,10 @@ const PREFIXED_CONFLICT_URI_RE = /^(.+):(conflict:\/\/.+)$/;
  * the model; any other input passes through unchanged without a note.
  */
 export function recoverConflictUriPrefix(raw: string): { path: string; note?: string } {
-	const match = raw.match(PREFIXED_CONFLICT_URI_RE);
-	if (!match) return { path: raw };
-	const [, prefix, url] = match;
+	const separator = raw.lastIndexOf(CONFLICT_URI_PREFIX_SEPARATOR);
+	if (separator <= 0 || separator + CONFLICT_URI_PREFIX_SEPARATOR.length >= raw.length) return { path: raw };
+	const prefix = raw.slice(0, separator);
+	const url = raw.slice(separator + 1);
 	return {
 		path: url,
 		note: `Note: stripped erroneous '${prefix}:' prefix from path; conflict URIs are global (use \`${url}\`, not \`<file>:${url}\`).`,

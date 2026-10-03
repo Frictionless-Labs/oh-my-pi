@@ -1,10 +1,37 @@
 import { $env, $flag } from "@oh-my-pi/pi-utils";
 
-const SIXEL_START_REGEX = /\x1bP(?:[0-9;]*)q/u;
 const SIXEL_END_SEQUENCE = "\x1b\\";
 const SIXEL_END_BELL = "\x07";
-const SIXEL_SEQUENCE_REGEX = /\x1bP(?:[0-9;]*)q[\s\S]*?(?:\x1b\\|\x07)/gu;
 const SIXEL_PLACEHOLDER_PREFIX = "__OMP_SIXEL_SEQUENCE_";
+
+function sixelPayloadStart(text: string, start: number): number | null {
+	if (!text.startsWith("\x1bP", start)) return null;
+	let cursor = start + 2;
+	while (cursor < text.length) {
+		const code = text.charCodeAt(cursor);
+		if ((code >= 48 && code <= 57) || code === 59) {
+			cursor += 1;
+			continue;
+		}
+		return text[cursor] === "q" ? cursor + 1 : null;
+	}
+	return null;
+}
+
+function nextSixelStart(text: string, from: number): number {
+	for (let start = text.indexOf("\x1bP", from); start !== -1; start = text.indexOf("\x1bP", start + 2)) {
+		if (sixelPayloadStart(text, start) !== null) return start;
+	}
+	return -1;
+}
+
+function sixelEnd(text: string, payloadStart: number): number {
+	const bell = text.indexOf(SIXEL_END_BELL, payloadStart);
+	const sequence = text.indexOf(SIXEL_END_SEQUENCE, payloadStart);
+	if (bell === -1) return sequence === -1 ? -1 : sequence + SIXEL_END_SEQUENCE.length;
+	if (sequence === -1) return bell + SIXEL_END_BELL.length;
+	return bell < sequence ? bell + SIXEL_END_BELL.length : sequence + SIXEL_END_SEQUENCE.length;
+}
 
 /**
  * Returns whether SIXEL passthrough is explicitly enabled.
@@ -19,7 +46,7 @@ export function isSixelPassthroughEnabled(): boolean {
 }
 /** Returns true when the text contains a SIXEL start sequence. */
 export function containsSixelSequence(text: string): boolean {
-	return SIXEL_START_REGEX.test(text);
+	return nextSixelStart(text, 0) !== -1;
 }
 
 /**
@@ -55,15 +82,41 @@ export function sanitizeWithOptionalSixelPassthrough(text: string, sanitize: (te
 	}
 
 	const preservedSequences: string[] = [];
-	const tokenized = text.replace(SIXEL_SEQUENCE_REGEX, match => {
-		const token = `${SIXEL_PLACEHOLDER_PREFIX}${preservedSequences.length}__`;
-		preservedSequences.push(match);
-		return token;
-	});
+	let tokenized = "";
+	let cursor = 0;
+	let scan = 0;
+	for (;;) {
+		const start = nextSixelStart(text, scan);
+		if (start === -1) break;
+		const payloadStart = sixelPayloadStart(text, start)!;
+		const end = sixelEnd(text, payloadStart);
+		if (end === -1) {
+			scan = start + 2;
+			continue;
+		}
+		tokenized += text.slice(cursor, start);
+		tokenized += `${SIXEL_PLACEHOLDER_PREFIX}${preservedSequences.length}__`;
+		preservedSequences.push(text.slice(start, end));
+		cursor = end;
+		scan = end;
+	}
+	tokenized += text.slice(cursor);
 
 	const sanitized = sanitize(tokenized);
-	return sanitized.replace(/__OMP_SIXEL_SEQUENCE_(\d+)__/gu, (_, indexText: string) => {
-		const index = Number.parseInt(indexText, 10);
-		return preservedSequences[index] ?? "";
-	});
+	let restored = "";
+	cursor = 0;
+	for (;;) {
+		const start = sanitized.indexOf(SIXEL_PLACEHOLDER_PREFIX, cursor);
+		if (start === -1) return restored + sanitized.slice(cursor);
+		let end = start + SIXEL_PLACEHOLDER_PREFIX.length;
+		while (end < sanitized.length && sanitized.charCodeAt(end) >= 48 && sanitized.charCodeAt(end) <= 57) end += 1;
+		if (end === start + SIXEL_PLACEHOLDER_PREFIX.length || sanitized.slice(end, end + 2) !== "__") {
+			restored += sanitized.slice(cursor, end);
+			cursor = end;
+			continue;
+		}
+		const index = Number.parseInt(sanitized.slice(start + SIXEL_PLACEHOLDER_PREFIX.length, end), 10);
+		restored += sanitized.slice(cursor, start) + (preservedSequences[index] ?? "");
+		cursor = end + 2;
+	}
 }

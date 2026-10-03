@@ -98,6 +98,7 @@ export const isoProbe = nativeBindings.isoProbe ?? missingNativeExport("isoProbe
 export const isoResolve = nativeBindings.isoResolve ?? missingNativeExport("isoResolve");
 export const isoStart = nativeBindings.isoStart ?? missingNativeExport("isoStart");
 export const isoStop = nativeBindings.isoStop ?? missingNativeExport("isoStop");
+export const linearRegexFind = nativeBindings.linearRegexFind ?? missingNativeExport("linearRegexFind");
 export const listWorkspace = nativeBindings.listWorkspace ?? missingNativeExport("listWorkspace");
 export const macOSAutocorrectWord = nativeBindings.macOSAutocorrectWord ?? missingNativeExport("macOSAutocorrectWord");
 export const macOSCheckSpelling = nativeBindings.macOSCheckSpelling ?? missingNativeExport("macOSCheckSpelling");

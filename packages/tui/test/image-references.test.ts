@@ -211,6 +211,11 @@ describe("collapseImageMarkers", () => {
 		const out = collapseImageMarkers("[Image #2] is from before", 1, () => {});
 		expect(out).toBe("[Image #2] is from before");
 	});
+
+	it("leaves a long unterminated marker unchanged in linear time", () => {
+		const marker = `[Image #1,${"[Image #1,".repeat(20_000)}`;
+		expect(collapseImageMarkers(marker, 1, () => {})).toBe(marker);
+	});
 });
 
 describe("compactImageMarkers", () => {

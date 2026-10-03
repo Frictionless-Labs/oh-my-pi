@@ -65,14 +65,14 @@ async function claimAutosavePath(dir: string, filename: string, planContent: str
 	for (let index = 0; index < MAX_AUTOSAVE_CANDIDATES; index += 1) {
 		const candidate = autosaveCandidate(dir, filename, index);
 		try {
-			await fs.writeFile(candidate, planContent, { flag: "wx" });
+			await fs.writeFile(candidate, planContent, { flag: "wx", mode: 0o600 });
 			return candidate;
 		} catch (error) {
 			if ((error as { code?: string }).code !== "EEXIST") throw error;
 		}
 	}
 	const fallback = path.join(dir, `${Date.now()}-${filename}`);
-	await fs.writeFile(fallback, planContent, { flag: "wx" });
+	await fs.writeFile(fallback, planContent, { flag: "wx", mode: 0o600 });
 	return fallback;
 }
 
@@ -89,6 +89,6 @@ export async function autosaveApprovedPlan(input: {
 	const dir = resolvePlanAutosaveDir(input.settings, input.cwd);
 	// fs.writeFile (unlike Bun.write) leaves parent creation to us; one mkdir
 	// up front covers every candidate the claim loop below may create.
-	await fs.mkdir(dir, { recursive: true });
+	await fs.mkdir(dir, { recursive: true, mode: 0o700 });
 	return claimAutosavePath(dir, planSaveFileName(input.title), input.planContent);
 }

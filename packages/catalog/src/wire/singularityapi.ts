@@ -28,7 +28,8 @@ export const SINGULARITYAPI_TECH_API_BASE_URL = "https://api.singularityapi.tech
  * provider at the other gateway, so there is no default.
  */
 export function normalizeSingularityApiBaseUrl(baseUrl: string | undefined, canonical: string): string {
-	const trimmed = baseUrl?.trim().replace(/\/+$/, "");
+	const trimmed = baseUrl === undefined ? undefined : stripTrailingCharacter(baseUrl.trim(), "/");
 	if (!trimmed) return canonical;
 	return trimmed.endsWith("/v1") ? trimmed : `${trimmed}/v1`;
 }
+import { stripTrailingCharacter } from "@oh-my-pi/pi-utils";

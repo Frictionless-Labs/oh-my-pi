@@ -222,7 +222,10 @@ function compileInlineGlobs(patterns: readonly string[]): Bun.Glob[] {
 }
 
 /** Device-write content that requests docs instead of executing: empty, `?`, or `help`. */
-const HELP_CONTENT_RE = /^\s*(\?|help)?\s*$/i;
+function isHelpContent(content: string): boolean {
+	const normalized = content.trim().toLowerCase();
+	return normalized === "" || normalized === "?" || normalized === "help";
+}
 
 /** Shared tool state consumed by the `xd://` presentation layer. */
 export interface XdevState {
@@ -438,7 +441,7 @@ export async function dispatchXdevTool(
 	try {
 		const canonical = resolveRequiredXdevTool(state, name);
 
-		if (HELP_CONTENT_RE.test(content)) {
+		if (isHelpContent(content)) {
 			return {
 				result: { content: [{ type: "text", text: renderDocs(canonical) }] },
 				xdev: { tool: name, mode: "help" },

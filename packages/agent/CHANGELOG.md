@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed repeated endpoint separators and streamed line whitespace causing excessive regex work during compaction.
+
 ## [18.4.11] - 2026-10-02
 
 ### Fixed

@@ -9,7 +9,7 @@ import { type FileLockHandle, tryAcquireFileLock, withFileLockSync } from "@oh-m
 import { type FsError, hasFsCode, isEnoent } from "@oh-my-pi/pi-utils/fs-error";
 import { openCloexecSync } from "@oh-my-pi/pi-utils/fs-open";
 import * as logger from "@oh-my-pi/pi-utils/logger";
-import { peekFileEnds } from "@oh-my-pi/pi-utils/peek-file";
+import { peekFileEnds, peekFileSync } from "@oh-my-pi/pi-utils/peek-file";
 import { Snowflake } from "@oh-my-pi/pi-utils/snowflake";
 import { toError } from "@oh-my-pi/pi-utils/type-guards";
 import { isAssistantMessageLine } from "./session-entries";
@@ -504,13 +504,7 @@ const SESSION_HEADER_PREFIX_BYTES = 64 * 1024;
 function readSessionHeaderIdSync(sessionPath: string): string | undefined {
 	let prefix: string;
 	try {
-		const fd = fs.openSync(sessionPath, "r");
-		try {
-			const buf = Buffer.alloc(SESSION_HEADER_PREFIX_BYTES);
-			prefix = buf.toString("utf8", 0, fs.readSync(fd, buf, 0, buf.length, 0));
-		} finally {
-			fs.closeSync(fd);
-		}
+		prefix = peekFileSync(sessionPath, SESSION_HEADER_PREFIX_BYTES, bytes => utf8Decoder.decode(bytes));
 	} catch {
 		return undefined;
 	}
@@ -829,7 +823,7 @@ export class FileSessionStorage implements SessionStorage {
 		this.ensureDirSync(dir);
 		const tempPath = path.join(dir, `.${path.basename(fpath)}.${Snowflake.next()}.tmp`);
 		try {
-			fs.writeFileSync(tempPath, content);
+			fs.writeFileSync(tempPath, content, { flag: "wx", mode: 0o600 });
 		} catch (err) {
 			this.#discardTemp(tempPath, fpath);
 			throw toError(err);
@@ -931,7 +925,7 @@ export class FileSessionStorage implements SessionStorage {
 		const tempPath = path.join(dir, `.${path.basename(fpath)}.${Snowflake.next()}.tmp`);
 		await fs.promises.mkdir(dir, { recursive: true });
 		try {
-			await fs.promises.writeFile(tempPath, content);
+			await fs.promises.writeFile(tempPath, content, { flag: "wx", mode: 0o600 });
 		} catch (err) {
 			this.#discardTemp(tempPath, fpath);
 			throw toError(err);

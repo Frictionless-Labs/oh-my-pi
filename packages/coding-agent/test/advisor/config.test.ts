@@ -168,6 +168,10 @@ describe("slugifyAdvisorName", () => {
 	it("falls back to 'advisor' when nothing alphanumeric survives", () => {
 		expect(slugifyAdvisorName("!!!")).toBe("advisor");
 	});
+
+	it("collapses adversarial punctuation runs in linear time", () => {
+		expect(slugifyAdvisorName(`security${"!".repeat(100_000)}reviewer`)).toBe("security-reviewer");
+	});
 });
 
 describe("getOrCreateAdvisorProviderSessionId", () => {

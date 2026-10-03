@@ -33,6 +33,42 @@ export type RemoveArgs = { name: string | undefined; scope: ScopeValue };
 
 export type ParseRemoveResult = { ok: true; value: RemoveArgs } | { ok: false; error: string };
 
+function isCommandWhitespace(character: string | undefined): boolean {
+	return character !== undefined && character.trim().length === 0;
+}
+
+function isAsciiWordCharacter(character: string | undefined): boolean {
+	if (character === undefined) return false;
+	const code = character.charCodeAt(0);
+	return (
+		(code >= 0x41 && code <= 0x5a) ||
+		(code >= 0x61 && code <= 0x7a) ||
+		(code >= 0x30 && code <= 0x39) ||
+		code === 0x5f
+	);
+}
+
+/** Extract the argument tail after a root command and one accepted subcommand. */
+export function commandTail(text: string, root: string, subcommands: readonly string[]): string {
+	const lower = text.toLowerCase();
+	const normalizedRoot = root.toLowerCase();
+	if (!lower.startsWith(normalizedRoot)) return "";
+	let cursor = normalizedRoot.length;
+	if (!isCommandWhitespace(text[cursor])) return "";
+	while (isCommandWhitespace(text[cursor])) cursor += 1;
+
+	for (const subcommand of subcommands) {
+		const normalizedSubcommand = subcommand.toLowerCase();
+		if (!lower.startsWith(normalizedSubcommand, cursor)) continue;
+		const tailStart = cursor + normalizedSubcommand.length;
+		if (isAsciiWordCharacter(text[tailStart])) continue;
+		cursor = tailStart;
+		while (isCommandWhitespace(text[cursor])) cursor += 1;
+		return text.slice(cursor).trim();
+	}
+	return "";
+}
+
 /**
  * Parse the argument tail of `/<cmd> remove <name> [--scope project|user]`.
  *

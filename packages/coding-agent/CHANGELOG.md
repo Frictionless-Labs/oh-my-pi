@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Fixed daemon log and readiness regexes allowing backtracking patterns to stall the broker; matching now uses the bounded linear-time native engine.
+- Fixed plan and session staging files being created without explicit private file permissions.
+- Fixed several unbounded parsers for commands, attachment paths, OAuth challenges, diagnostics, and environment placeholders.
 - Fixed managed JavaScript eval environments loading undeclared packages from Bun's global package cache.
 - Fixed Windows shell path handling for temporary directories, ripgrep separators, byte counts from positioned files, and edit-path recovery.
 ## [18.5.0] - 2026-10-03

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added `linearRegexFind()`, a bounded linear-time regex matcher for untrusted patterns and text.
+
 ## [18.5.0] - 2026-10-03
 
 ### Fixed

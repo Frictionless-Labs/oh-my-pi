@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed adversarial attachment markers, diagnostics, search labels, terminal spans, and SIXEL output causing excessive regex work while rendering.
+
 ## [18.5.0] - 2026-10-03
 
 ### Breaking Changes

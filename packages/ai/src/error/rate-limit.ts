@@ -109,11 +109,14 @@ const CN_THROTTLE_PATTERN = /速率(?:限制|过快)|频率(?:过高|过快)|过
 const DASHSCOPE_TOKEN_LIMIT_DOC_PATTERN = /error-code[^()\s]*#token-limit/i;
 const DASHSCOPE_TOKEN_LIMIT_MESSAGE_PATTERN =
 	/\byou exceeded your current quota, please check your plan and billing details\b/i;
+const MAX_RATE_LIMIT_SCAN_CHARS = 8 * 1024;
 /** True for DashScope/Bailian's documented OpenAI-compatible TPM/TPS throttle. */
 export function isDashScopeTokenLimitText(errorMessage: string): boolean {
-	return (
-		DASHSCOPE_TOKEN_LIMIT_DOC_PATTERN.test(errorMessage) && DASHSCOPE_TOKEN_LIMIT_MESSAGE_PATTERN.test(errorMessage)
-	);
+	const bounded =
+		errorMessage.length <= MAX_RATE_LIMIT_SCAN_CHARS
+			? errorMessage
+			: `${errorMessage.slice(0, MAX_RATE_LIMIT_SCAN_CHARS / 2)}\n${errorMessage.slice(-MAX_RATE_LIMIT_SCAN_CHARS / 2)}`;
+	return DASHSCOPE_TOKEN_LIMIT_DOC_PATTERN.test(bounded) && DASHSCOPE_TOKEN_LIMIT_MESSAGE_PATTERN.test(bounded);
 }
 
 // Rolling per-minute token/request throttles (TPM/RPM). Providers report these

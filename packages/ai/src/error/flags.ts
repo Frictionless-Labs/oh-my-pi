@@ -298,6 +298,13 @@ const OAUTH_DEFINITIVE_FAILURE_PATTERN =
 const OAUTH_TRANSIENT_FAILURE_PATTERN =
 	/timeout|network|fetch failed|ECONN(?:REFUSED|RESET)|ETIMEDOUT|EAI_AGAIN|socket hang up|\b(?:408|425|429|5\d{2})\b|rate.?limit|too many requests|temporar|unavailable|forbidden|permission_denied|cloudflare|captcha/i;
 const OAUTH_HTTP_AUTH_PATTERN = /\b401\b/;
+const MAX_ERROR_SCAN_CHARS = 8 * 1024;
+
+function boundedErrorScanText(text: string): string {
+	if (text.length <= MAX_ERROR_SCAN_CHARS) return text;
+	const half = MAX_ERROR_SCAN_CHARS / 2;
+	return `${text.slice(0, half)}\n${text.slice(-half)}`;
+}
 
 function matchesStrictToolsRejection(message: string, errorStatus: number | undefined): boolean {
 	if (errorStatus !== 400) return false;
@@ -332,8 +339,9 @@ function matchesFastModeUnsupported(message: string, errorStatus: number | undef
 
 /** Whether an OAuth refresh error message means the grant is definitively dead. */
 export function isOAuthExpiry(errorMessage: string): boolean {
-	if (OAUTH_DEFINITIVE_FAILURE_PATTERN.test(errorMessage)) return true;
-	return OAUTH_HTTP_AUTH_PATTERN.test(errorMessage) && !OAUTH_TRANSIENT_FAILURE_PATTERN.test(errorMessage);
+	const bounded = boundedErrorScanText(errorMessage);
+	if (OAUTH_DEFINITIVE_FAILURE_PATTERN.test(bounded)) return true;
+	return OAUTH_HTTP_AUTH_PATTERN.test(bounded) && !OAUTH_TRANSIENT_FAILURE_PATTERN.test(bounded);
 }
 
 const ERROR_KIND_LABELS: readonly [Flag, string][] = [
@@ -423,8 +431,9 @@ function statusInternal(error: unknown, depth: number): number | undefined {
 	if (error instanceof Error || (typeof error === "object" && error !== null && "message" in error)) {
 		const message = (error as { message: string }).message;
 		if (typeof message === "string") {
+			const bounded = boundedErrorScanText(message);
 			for (const pattern of STATUS_MESSAGE_PATTERNS) {
-				const match = pattern.exec(message);
+				const match = pattern.exec(bounded);
 				if (match) {
 					const code = parseInt(match[1], 10);
 					if (code >= 100 && code <= 599) return code;
@@ -486,7 +495,8 @@ function isContentBlockedText(text: string): boolean {
 }
 
 function matchesOverflowText(text: string): boolean {
-	return OVERFLOW_PATTERNS.some(p => p.test(text)) || OVERFLOW_NO_BODY_PATTERN.test(text);
+	const bounded = boundedErrorScanText(text);
+	return OVERFLOW_PATTERNS.some(p => p.test(bounded)) || OVERFLOW_NO_BODY_PATTERN.test(bounded);
 }
 
 /**

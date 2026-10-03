@@ -6,7 +6,6 @@ import type { ScreenshotResult } from "./browser/tab-protocol";
 import { ToolAbortError } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 
-const PDF_IMAGE_MEMBER_RE = /^(.*\.pdf):(.*)$/i;
 const PDF_PAGE_MEMBER_RE = /^(?:p|page[-_]?)(\d+)(?:[-_].*)?\.png$/i;
 const PDF_RENDER_TIMEOUT_MS = 30_000;
 
@@ -64,10 +63,10 @@ export interface PdfImageReadTarget {
 
 /** Parse a former PDF image-member path as a Chromium page screenshot request. */
 export function splitPdfImageReadPath(readPath: string): PdfImageReadTarget | null {
-	const match = PDF_IMAGE_MEMBER_RE.exec(readPath);
-	const pdfPath = match?.[1];
-	const member = match?.[2];
-	if (!pdfPath || member === undefined) return null;
+	const boundary = readPath.toLowerCase().lastIndexOf(".pdf:");
+	if (boundary < 0) return null;
+	const pdfPath = readPath.slice(0, boundary + ".pdf".length);
+	const member = readPath.slice(boundary + ".pdf:".length);
 	const pageText = PDF_PAGE_MEMBER_RE.exec(member)?.[1];
 	const parsedPage = pageText === undefined ? 1 : Number(pageText);
 	const page = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
