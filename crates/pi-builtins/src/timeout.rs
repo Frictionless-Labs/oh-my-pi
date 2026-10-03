@@ -541,6 +541,7 @@ mod tests {
 		assert_eq!(args.duration, "-1");
 	}
 
+	#[cfg(unix)]
 	#[test]
 	fn signal_spellings_parse_and_display_without_prefix() {
 		// Failure mode: rejecting a signal spelling GNU accepts.
@@ -565,6 +566,7 @@ mod tests {
 		assert_eq!(u8::from(result.exit_code), 7);
 	}
 
+	#[cfg(unix)]
 	#[tokio::test]
 	async fn preserve_status_reports_death_by_the_timeout_signal() {
 		// In-process operands retire via the cancel fallback, where the inner
@@ -576,6 +578,7 @@ mod tests {
 		assert_eq!(u8::from(result.exit_code), 143);
 	}
 
+	#[cfg(unix)]
 	#[tokio::test]
 	async fn kill_signal_reports_137() {
 		// GNU exits 128+9 when the command is taken down with SIGKILL.

@@ -177,8 +177,6 @@ impl PathPolicy {
 		if normalized.is_empty() {
 			return None;
 		}
-		let escaped = escape_glob_metachars(normalized);
-		let glob = pi_walker::CompiledWalkGlob::new([format!("**/{escaped}")]).ok()?;
 		let started = Instant::now();
 		let request = pi_walker::WalkRequest::new(&self.cwd)
 			.hidden(true)
@@ -186,23 +184,71 @@ impl PathPolicy {
 			.skip_git(true)
 			.skip_node_modules(false)
 			.emit_root(false)
-			.cache(false)
-			.limit(2)
-			.filter(pi_walker::WalkFilter::all().glob(glob));
-		let result = request
-			.collect_with_heartbeat(|| {
-				if started.elapsed() >= Duration::from_secs(5) {
-					Err("workspace suffix search timed out")
-				} else {
-					Ok(())
-				}
-			})
+			.cache(false);
+		let mut matches = Vec::with_capacity(2);
+		request
+			.for_each_entry_with_heartbeat(
+				|| {
+					if started.elapsed() >= Duration::from_secs(5) {
+						Err("workspace suffix search timed out")
+					} else {
+						Ok(())
+					}
+				},
+				|entry| {
+					if Self::path_has_component_suffix(entry.relative_path, normalized) {
+						matches.push(entry.relative_path.to_owned());
+						if matches.len() == 2 {
+							return Ok(pi_walker::WalkDecision::Stop);
+						}
+					}
+					Ok(pi_walker::WalkDecision::Include)
+				},
+				|_| Ok(pi_walker::WalkDecision::Include),
+			)
 			.ok()?;
-		if result.entries.len() != 1 {
+		if matches.len() != 1 {
 			return None;
 		}
-		let display = result.entries.into_iter().next()?.path;
+		let display = matches.pop()?;
 		Some(Resolved { absolute: self.cwd.join(&display), display })
+	}
+
+	/// Return whether `candidate` ends with the complete relative components in
+	/// `suffix`, treating both slash spellings as separators. The walker emits
+	/// forward-slash display paths on every host, while authored paths can carry
+	/// either spelling; comparing strings through platform-native [`Path`]
+	/// components makes that contract depend on the runner OS.
+	fn path_has_component_suffix(candidate: &str, suffix: &str) -> bool {
+		let Some(candidate) = Self::relative_path_components(candidate) else {
+			return false;
+		};
+		let Some(suffix) = Self::relative_path_components(suffix) else {
+			return false;
+		};
+		candidate.ends_with(&suffix)
+	}
+
+	fn relative_path_components(path: &str) -> Option<Vec<&str>> {
+		if path.is_empty() || path.starts_with(['/', '\\']) {
+			return None;
+		}
+		let mut components = Vec::new();
+		for component in path.split(['/', '\\']) {
+			if component.is_empty() || component == "." {
+				continue;
+			}
+			if component == ".."
+				|| components.is_empty()
+					&& component.len() == 2
+					&& component.as_bytes()[0].is_ascii_alphabetic()
+					&& component.as_bytes()[1] == b':'
+			{
+				return None;
+			}
+			components.push(component);
+		}
+		(!components.is_empty()).then_some(components)
 	}
 
 	/// Enforce plan-mode write restrictions: renames and deletes are refused;
@@ -534,20 +580,6 @@ fn is_within(path: &Path, root: &Path) -> bool {
 	path == root || path.starts_with(root)
 }
 
-fn escape_glob_metachars(value: &str) -> String {
-	let mut out = String::with_capacity(value.len());
-	for c in value.chars() {
-		if matches!(c, '*' | '?' | '[' | '{') {
-			out.push('[');
-			out.push(c);
-			out.push(']');
-		} else {
-			out.push(c);
-		}
-	}
-	out
-}
-
 /// Basenames that only generators produce; these block without inspecting
 /// content. Ambiguous names such as `generated.go` are left to the content
 /// marker check instead.
@@ -712,11 +744,12 @@ mod tests {
 		assert_eq!(p.resolve(":./x", &urls).unwrap().absolute, tmp.path().join("./x"));
 		// The file URL's `/tmp/...` path maps to a POSIX root; on Windows it
 		// resolves onto the current drive instead (`C:\tmp\...`).
-		#[cfg(unix)]
-		assert_eq!(
-			p.resolve("file:///tmp/a%20b", &urls).unwrap().absolute,
+		let file_url_path = if cfg!(windows) {
+			PathBuf::from(r"C:\tmp\a b")
+		} else {
 			PathBuf::from("/tmp/a b")
-		);
+		};
+		assert_eq!(p.resolve("file:///tmp/a%20b", &urls).unwrap().absolute, file_url_path);
 		// Scheme-colon names without a slash, Windows drives, and `./`-prefixed
 		// URI-shaped names are plain paths.
 		assert_eq!(p.resolve("sbx:x", &urls).unwrap().absolute, tmp.path().join("sbx:x"));
@@ -908,6 +941,43 @@ mod tests {
 		std::fs::create_dir_all(tmp.path().join("other/src")).unwrap();
 		std::fs::write(tmp.path().join("other/src/a.ts"), "").unwrap();
 		assert!(p.recover_missing("src/a.ts").is_none());
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn symlink_suffixes_preserve_recovery_ambiguity() {
+		let tmp = tempfile::tempdir().unwrap();
+		let p = policy(tmp.path());
+		std::fs::create_dir_all(tmp.path().join("real/src")).unwrap();
+		std::fs::create_dir_all(tmp.path().join("linked/src")).unwrap();
+		std::fs::write(tmp.path().join("real/src/a.ts"), "").unwrap();
+		std::os::unix::fs::symlink(
+			tmp.path().join("real/src/a.ts"),
+			tmp.path().join("linked/src/a.ts"),
+		)
+		.unwrap();
+
+		assert!(p.recover_missing("src/a.ts").is_none());
+	}
+
+	#[test]
+	fn suffix_matching_is_separator_independent_and_component_bounded() {
+		for (candidate, suffix, expected) in [
+			("nested/a.txt", "a.txt", true),
+			(r"nested\a.txt", "a.txt", true),
+			(r"deep\nested/a.txt", r"nested\a.txt", true),
+			("nested/a.txt", "ested/a.txt", false),
+			("nested/a.txt", "nested", false),
+			("nested/a.txt", "../a.txt", false),
+			("nested/a.txt", "/a.txt", false),
+			("nested/a.txt", "", false),
+		] {
+			assert_eq!(
+				PathPolicy::path_has_component_suffix(candidate, suffix),
+				expected,
+				"{candidate:?} / {suffix:?}"
+			);
+		}
 	}
 
 	#[test]

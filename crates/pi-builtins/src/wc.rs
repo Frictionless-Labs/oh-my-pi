@@ -19,7 +19,6 @@ mod count_fast {
 	const FILE_ATTRIBUTE_ARCHIVE: u32 = 32;
 	#[cfg(windows)]
 	const FILE_ATTRIBUTE_NORMAL: u32 = 128;
-	
 	#[cfg(any(target_os = "linux", target_os = "android"))]
 	use std::os::fd::AsFd;
 	
@@ -68,9 +67,8 @@ mod count_fast {
 	///   1. On Unix,  we can simply `stat` the file if it is regular.
 	///   2. On Linux -- if the above did not work -- we can use splice to count the
 	///      number of bytes if the file is a FIFO.
-	///   3. On Windows we can use `std::os::windows::fs::MetadataExt` to get file
-	///      size for regular files
-	///   3. Otherwise, we just read normally, but without the overhead of counting
+	///   3. On Windows, subtract the current file position from the metadata size.
+	///   4. Otherwise, we just read normally, but without the overhead of counting
 	///      other things such as lines and words.
 	///
 	/// The descriptor shortcuts apply only to handles backed by a native host
@@ -111,7 +109,7 @@ mod count_fast {
 				}
 			}
 		}
-	
+
 		#[cfg(windows)]
 		{
 			use std::io::{Seek as _, SeekFrom};
@@ -254,6 +252,7 @@ mod countable {
 		fn native_file(&self) -> Option<&std::fs::File> {
 			None
 		}
+
 	}
 
 	impl WordCountable for File {
@@ -272,6 +271,7 @@ mod countable {
 		fn native_file(&self) -> Option<&std::fs::File> {
 			self.native()
 		}
+
 	}
 }
 

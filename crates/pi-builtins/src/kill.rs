@@ -591,6 +591,7 @@ mod tests {
 
 	/// bash maps exit statuses above 128 back to the terminating signal:
 	/// `kill -l 137` prints `KILL`, while 128 and 265 stay invalid.
+	#[cfg(unix)]
 	#[test]
 	fn list_maps_exit_statuses_above_128() {
 		assert!(matches!(printed_signal("137"), Ok(PrintedSignal::Name("KILL"))));

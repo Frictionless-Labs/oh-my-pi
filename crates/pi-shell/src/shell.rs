@@ -2291,10 +2291,10 @@ mod tests {
 	}
 
 	/// Runs `cd "$TEMP"` and asserts the shell cwd, `PWD`, and every temp var
-	/// share the long spelling `expected`.
+	/// identify the long path `expected`. Windows APIs may preserve one trailing
+	/// separator in inherited temp variables while `cd` normalizes `PWD`.
 	#[cfg(windows)]
 	async fn assert_cd_temp_matches_pwd(shell: &mut BrushShell, expected: &std::path::Path) {
-		let expected_str = expected.to_string_lossy().into_owned();
 		let mut params = shell.default_exec_params();
 		params.set_fd(OpenFiles::STDIN_FD, null_file().expect("null stdin"));
 		params.set_fd(OpenFiles::STDOUT_FD, null_file().expect("null stdout"));
@@ -2306,7 +2306,10 @@ mod tests {
 		assert_eq!(exit_code(&result), 0);
 		assert_eq!(shell.working_dir(), expected);
 		for key in ["TEMP", "TMP", "TMPDIR", "PWD"] {
-			assert_eq!(shell.env_str(key).as_deref(), Some(expected_str.as_str()), "{key}");
+			let actual = shell
+				.env_str(key)
+				.expect("path-valued environment variable");
+			assert_eq!(std::path::Path::new(actual.as_ref()), expected, "{key}: {actual:?}");
 		}
 	}
 

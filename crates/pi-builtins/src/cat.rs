@@ -682,6 +682,8 @@ mod tests {
 		let (code, capture) = run_util::<Cat>(&["missing", "present"], "", directory.path());
 		assert_eq!(code, 1);
 		assert_eq!(capture.out(), "remaining\n");
-		assert_eq!(capture.err(), "cat: missing: No such file or directory\n");
+		let error = fs::metadata(directory.path().join("missing")).unwrap_err();
+		let message = super::strip_errno(&error);
+		assert_eq!(capture.err(), format!("cat: missing: {message}\n"));
 	}
 }

@@ -1174,9 +1174,11 @@ mod tests {
 	fn missing_operand_file_is_trouble() {
 		let dir = tempfile::tempdir().unwrap();
 		fs::write(dir.path().join("a.txt"), "x\n").unwrap();
+		let error = fs::metadata(dir.path().join("nope.txt")).unwrap_err();
+		let message = super::strip_errno(&error);
 		assert_eq!(
 			run_in(dir.path(), "", &["a.txt", "nope.txt"]),
-			(2, String::new(), "diff: nope.txt: No such file or directory\n".to_string())
+			(2, String::new(), format!("diff: nope.txt: {message}\n"))
 		);
 	}
 
@@ -1225,7 +1227,11 @@ mod tests {
 		fs::write(b.join("sub/inner.txt"), "new\n").unwrap();
 		assert_eq!(
 			run_in(dir.path(), "", &["a", "b"]),
-			(0, "Common subdirectories: a/sub and b/sub\n".to_string(), String::new())
+			(
+				0,
+				"Common subdirectories: a/sub and b/sub\n".to_string(),
+				String::new()
+			)
 		);
 	}
 
@@ -1269,7 +1275,10 @@ mod tests {
 		let (code, stdout, stderr) =
 			run_in(dir.path(), "", &["-r", "-x", "*.log", "-x", ".git", "a", "b"]);
 		assert_eq!((code, stderr.as_str()), (1, ""));
-		assert!(stdout.contains("diff -r a/keep.txt b/keep.txt\n1c1\n< old\n---\n> new\n"), "got: {stdout}");
+		assert!(
+			stdout.contains("diff -r a/keep.txt b/keep.txt\n1c1\n< old\n---\n> new\n"),
+			"got: {stdout}"
+		);
 		assert!(!stdout.contains(".git"), "got: {stdout}");
 		assert!(!stdout.contains(".log"), "got: {stdout}");
 	}

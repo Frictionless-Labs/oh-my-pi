@@ -556,7 +556,7 @@ mod tests {
 
 	use clap::Parser;
 
-	use super::Mktemp;
+	use super::{Mktemp, TMPDIR_ENV_VARS};
 	use crate::host::{Host, Utility};
 
 	fn canonical_tempdir() -> (tempfile::TempDir, PathBuf) {
@@ -597,7 +597,7 @@ mod tests {
 	}
 
 	fn tmpdir_env(dir: &Path) -> [(&str, &str); 1] {
-		[("TMPDIR", dir.to_str().unwrap())]
+		[(TMPDIR_ENV_VARS[0], dir.to_str().unwrap())]
 	}
 
 	#[test]
@@ -639,7 +639,8 @@ mod tests {
 	fn relative_template_directory_resolves_against_host_cwd() {
 		let (_dir, root) = canonical_tempdir();
 		std::fs::create_dir(root.join("nested")).unwrap();
-		let (code, stdout, stderr) = run_in(root.clone(), &[], &["nested/foo.XXXX"]);
+		let template = Path::new("nested").join("foo.XXXX");
+		let (code, stdout, stderr) = run_in(root.clone(), &[], &[template.to_str().unwrap()]);
 		assert_eq!(code, 0);
 		assert_eq!(stderr, "");
 		let printed = PathBuf::from(stdout.trim_end_matches('\n'));

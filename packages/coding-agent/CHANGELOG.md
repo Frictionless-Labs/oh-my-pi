@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed Windows shell path handling for temporary directories, ripgrep separators, byte counts from positioned files, and edit-path recovery.
+
 ## [18.5.0] - 2026-10-03
 
 ### Breaking Changes

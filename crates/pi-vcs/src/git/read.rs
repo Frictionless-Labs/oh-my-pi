@@ -1317,6 +1317,7 @@ mod tests {
 		git(dir.path(), &["init", "-b", "main"])?;
 		git(dir.path(), &["config", "user.name", "Test User"])?;
 		git(dir.path(), &["config", "user.email", "test@example.com"])?;
+		git(dir.path(), &["config", "core.autocrlf", "false"])?;
 		let repo = GitRepo::require(dir.path())?;
 		Ok((dir, repo))
 	}
