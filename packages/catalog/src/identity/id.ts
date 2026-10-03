@@ -69,7 +69,7 @@ function isBracketClose(value: string): boolean {
 
 function stripLeadingBracketedAffixes(value: string): string {
 	let cursor = 0;
-	let stripped = false;
+	let strippedEnd = 0;
 	for (;;) {
 		while (cursor < value.length && value[cursor]?.trim() === "") cursor += 1;
 		if (!isBracketOpen(value[cursor] ?? "")) break;
@@ -78,25 +78,33 @@ function stripLeadingBracketedAffixes(value: string): string {
 		while (cursor < value.length && !isBracketClose(value[cursor] ?? "")) cursor += 1;
 		if (cursor === contentStart || cursor === value.length) break;
 		cursor += 1;
-		stripped = true;
+		strippedEnd = cursor;
 	}
-	return stripped ? value.slice(cursor).trimStart() : value;
+	return strippedEnd > 0 ? value.slice(strippedEnd).trimStart() : value;
 }
 
 function stripTrailingBracketedAffixes(value: string): string {
 	let cursor = value.length;
-	let stripped = false;
+	let strippedStart = value.length;
 	for (;;) {
 		while (cursor > 0 && value[cursor - 1]?.trim() === "") cursor -= 1;
 		if (!isBracketClose(value[cursor - 1] ?? "")) break;
 		const contentEnd = cursor - 1;
 		cursor = contentEnd;
-		while (cursor > 0 && !isBracketOpen(value[cursor - 1] ?? "")) cursor -= 1;
+		let nestedClose = false;
+		while (cursor > 0 && !isBracketOpen(value[cursor - 1] ?? "")) {
+			if (isBracketClose(value[cursor - 1] ?? "")) {
+				nestedClose = true;
+				break;
+			}
+			cursor -= 1;
+		}
+		if (nestedClose) break;
 		if (cursor === 0 || cursor === contentEnd) break;
 		cursor -= 1;
-		stripped = true;
+		strippedStart = cursor;
 	}
-	return stripped ? value.slice(0, cursor).trimEnd() : value;
+	return strippedStart < value.length ? value.slice(0, strippedStart).trimEnd() : value;
 }
 
 /**

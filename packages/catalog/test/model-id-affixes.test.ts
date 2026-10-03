@@ -64,6 +64,13 @@ describe("getBracketStrippedModelIdCandidates", () => {
 		expect(stripBracketedModelIdAffixes("【供应商】 deepseek-v3 【限时】")).toBe("deepseek-v3");
 	});
 
+	test("preserves malformed and empty bracket text beside valid affixes", () => {
+		expect(getBracketStrippedModelIdCandidates("[vendor][gpt-5")).toEqual(["[gpt-5"]);
+		expect(getBracketStrippedModelIdCandidates("[vendor][]gpt-5")).toEqual(["[]gpt-5"]);
+		expect(getBracketStrippedModelIdCandidates("gpt-5 [] [vendor]")).toEqual(["gpt-5 []"]);
+		expect(getBracketStrippedModelIdCandidates("gpt-5 [one[two]]")).toEqual([]);
+	});
+
 	test("strips long repeated affixes without regex backtracking", () => {
 		const affixes = "[vendor] ".repeat(10_000);
 		expect(stripBracketedModelIdAffixes(`${affixes}claude-opus-4-8`)).toBe("claude-opus-4-8");

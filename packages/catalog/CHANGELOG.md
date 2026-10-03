@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Fixed repeated model-id affixes and provider URL separators causing excessive regex work during discovery and routing.
+- Fixed repeated model-id affixes and provider URL separators causing excessive regex work without stripping adjacent malformed bracket text.
 
 ## [18.5.0] - 2026-10-03
 
