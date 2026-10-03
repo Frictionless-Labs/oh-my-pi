@@ -1225,17 +1225,11 @@ mod tests {
 		fs::write(b.join("common.txt"), "same\n").unwrap();
 		fs::write(a.join("sub/inner.txt"), "old\n").unwrap();
 		fs::write(b.join("sub/inner.txt"), "new\n").unwrap();
-		let a_sub = Path::new("a").join("sub");
-		let b_sub = Path::new("b").join("sub");
 		assert_eq!(
 			run_in(dir.path(), "", &["a", "b"]),
 			(
 				0,
-				format!(
-					"Common subdirectories: {} and {}\n",
-					a_sub.display(),
-					b_sub.display()
-				),
+				"Common subdirectories: a/sub and b/sub\n".to_string(),
 				String::new()
 			)
 		);
@@ -1258,14 +1252,8 @@ mod tests {
 		assert_eq!(stderr, "");
 		assert!(stdout.contains("Only in a: only.txt\n"), "got: {stdout}");
 		assert!(stdout.contains("Only in b: other.txt\n"), "got: {stdout}");
-		let a_inner = Path::new("a").join("sub").join("inner.txt");
-		let b_inner = Path::new("b").join("sub").join("inner.txt");
 		assert!(
-			stdout.contains(&format!(
-				"diff -r {} {}\n1c1\n< old\n---\n> new\n",
-				a_inner.display(),
-				b_inner.display()
-			)),
+			stdout.contains("diff -r a/sub/inner.txt b/sub/inner.txt\n1c1\n< old\n---\n> new\n"),
 			"got: {stdout}"
 		);
 		assert!(!stdout.contains("common.txt"), "got: {stdout}");
@@ -1287,14 +1275,8 @@ mod tests {
 		let (code, stdout, stderr) =
 			run_in(dir.path(), "", &["-r", "-x", "*.log", "-x", ".git", "a", "b"]);
 		assert_eq!((code, stderr.as_str()), (1, ""));
-		let a_keep = Path::new("a").join("keep.txt");
-		let b_keep = Path::new("b").join("keep.txt");
 		assert!(
-			stdout.contains(&format!(
-				"diff -r {} {}\n1c1\n< old\n---\n> new\n",
-				a_keep.display(),
-				b_keep.display()
-			)),
+			stdout.contains("diff -r a/keep.txt b/keep.txt\n1c1\n< old\n---\n> new\n"),
 			"got: {stdout}"
 		);
 		assert!(!stdout.contains(".git"), "got: {stdout}");

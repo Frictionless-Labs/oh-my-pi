@@ -2078,7 +2078,7 @@ mod tests {
 		std::fs::write(tree.path().join("sub/file.txt"), "x\n").unwrap();
 		let (code, capture) = run_util::<Rg>(&["--files", "sub"], "", tree.path());
 		assert_eq!(code, 0, "{}", capture.err());
-		assert_eq!(capture.out(), format!("sub{}file.txt\n", std::path::MAIN_SEPARATOR));
+		assert_eq!(capture.out(), "sub/file.txt\n");
 	}
 
 

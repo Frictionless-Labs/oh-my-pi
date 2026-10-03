@@ -760,13 +760,9 @@ mod tests {
 			run_in(root, &[], &["-p", "missing-dir", "foo.XXXX"]);
 		assert_eq!(code, 1);
 		assert_eq!(stdout, "");
-		let template = Path::new("missing-dir").join("foo.XXXX");
 		assert_eq!(
 			stderr,
-			format!(
-				"mktemp: failed to create file via template '{}': No such file or directory\n",
-				template.display()
-			)
+			"mktemp: failed to create file via template 'missing-dir/foo.XXXX': No such file or directory\n"
 		);
 	}
 
