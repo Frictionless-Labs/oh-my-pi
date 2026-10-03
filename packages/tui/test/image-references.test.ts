@@ -223,16 +223,12 @@ describe("collapseImageMarkers", () => {
 		);
 	});
 
-	it(
-		"shifts a large image-only marker stream within the composer deadline",
-		() => {
-			const markers = Array.from({ length: 40_000 }, (_, index) => `[Image #${index + 1}]`).join(" ");
-			const shifted = shiftImageMarkers(markers, 1);
-			expect(shifted.startsWith("[Image #2] [Image #3]")).toBe(true);
-			expect(shifted.endsWith("[Image #40001]")).toBe(true);
-		},
-		1_500,
-	);
+	it("shifts a large image-only marker stream within the composer deadline", () => {
+		const markers = Array.from({ length: 40_000 }, (_, index) => `[Image #${index + 1}]`).join(" ");
+		const shifted = shiftImageMarkers(markers, 1);
+		expect(shifted.startsWith("[Image #2] [Image #3]")).toBe(true);
+		expect(shifted.endsWith("[Image #40001]")).toBe(true);
+	}, 1_500);
 });
 
 describe("compactImageMarkers", () => {

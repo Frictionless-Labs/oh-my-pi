@@ -92,14 +92,10 @@ describe("visibleWidth — parity with the native width engine", () => {
 		expect(visibleWidth(`${ESC}]66;s=3:w=4;X${ST}`)).toBe(12); // 3 * 4
 	});
 
-	it(
-		"measures a large BEL-terminated OSC 66 stream within the render deadline",
-		() => {
-			const spans = `${ESC}]66;s=2;X${BEL}`.repeat(160_000);
-			expect(visibleWidth(spans)).toBe(320_000);
-		},
-		1_500,
-	);
+	it("measures a large BEL-terminated OSC 66 stream within the render deadline", () => {
+		const spans = `${ESC}]66;s=2;X${BEL}`.repeat(160_000);
+		expect(visibleWidth(spans)).toBe(320_000);
+	}, 1_500);
 
 	it("measures APC payloads as zero cells (Kitty placement prefix on placeholder rows)", () => {
 		// Regression: `Bun.stringWidth` counts APC payloads as printable, which

@@ -84,16 +84,12 @@ describe("BashExecutionComponent SIXEL sanitization", () => {
 		expect(component.getOutput()).toBe("");
 	});
 
-	it(
-		"sanitizes repeated unterminated SIXEL starts within the output deadline",
-		() => {
-			Bun.env.PI_FORCE_IMAGE_PROTOCOL = "sixel";
-			Bun.env.PI_ALLOW_SIXEL_PASSTHROUGH = "1";
-			const unterminated = "\x1bPqabc".repeat(160_000);
-			expect(sanitizeWithOptionalSixelPassthrough(unterminated, value => value)).toBe(unterminated);
-		},
-		1_500,
-	);
+	it("sanitizes repeated unterminated SIXEL starts within the output deadline", () => {
+		Bun.env.PI_FORCE_IMAGE_PROTOCOL = "sixel";
+		Bun.env.PI_ALLOW_SIXEL_PASSTHROUGH = "1";
+		const unterminated = "\x1bPqabc".repeat(160_000);
+		expect(sanitizeWithOptionalSixelPassthrough(unterminated, value => value)).toBe(unterminated);
+	}, 1_500);
 
 	it("preserves BEL-terminated SIXEL sequences when passthrough is enabled", () => {
 		Bun.env.PI_FORCE_IMAGE_PROTOCOL = "sixel";
