@@ -226,11 +226,17 @@ interface VisionMarker {
 function* visionMarkers(text: string): Generator<VisionMarker> {
 	let cursor = 0;
 	for (;;) {
-		const imageStart = text.indexOf("[Image #", cursor);
-		const videoStart = text.indexOf("[Video #", cursor);
-		const start = imageStart === -1 ? videoStart : videoStart === -1 ? imageStart : Math.min(imageStart, videoStart);
+		const start = text.indexOf("[", cursor);
 		if (start === -1) return;
-		const kind = text.startsWith("[Video #", start) ? "Video" : "Image";
+		const kind = text.startsWith("[Image #", start)
+			? "Image"
+			: text.startsWith("[Video #", start)
+				? "Video"
+				: undefined;
+		if (kind === undefined) {
+			cursor = start + 1;
+			continue;
+		}
 		const prefixLength = kind === "Video" ? "[Video #".length : "[Image #".length;
 		let indexEnd = start + prefixLength;
 		if (text.charCodeAt(indexEnd) < 49 || text.charCodeAt(indexEnd) > 57) {

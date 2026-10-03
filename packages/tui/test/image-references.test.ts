@@ -216,6 +216,23 @@ describe("collapseImageMarkers", () => {
 		const marker = `[Image #1,${"[Image #1,".repeat(20_000)}`;
 		expect(collapseImageMarkers(marker, 1, () => {})).toBe(marker);
 	});
+
+	it("shifts mixed image and video markers without consuming malformed prefixes", () => {
+		expect(shiftImageMarkers("[Video #1] [Imago #9] [Image #2, 1x1]", 2)).toBe(
+			"[Video #3] [Imago #9] [Image #4, 1x1]",
+		);
+	});
+
+	it(
+		"shifts a large image-only marker stream within the composer deadline",
+		() => {
+			const markers = Array.from({ length: 40_000 }, (_, index) => `[Image #${index + 1}]`).join(" ");
+			const shifted = shiftImageMarkers(markers, 1);
+			expect(shifted.startsWith("[Image #2] [Image #3]")).toBe(true);
+			expect(shifted.endsWith("[Image #40001]")).toBe(true);
+		},
+		1_500,
+	);
 });
 
 describe("compactImageMarkers", () => {

@@ -234,6 +234,16 @@ export function getSegmenter(): Intl.Segmenter {
 const OSC66_PREFIX = "\x1b]66;";
 const STRING_TERMINATOR = "\x1b\\";
 
+function osc66PayloadEnd(text: string, payloadStart: number): { end: number; next: number } | undefined {
+	for (let cursor = payloadStart; cursor < text.length; cursor += 1) {
+		if (text.charCodeAt(cursor) === 0x07) return { end: cursor, next: cursor + 1 };
+		if (text.startsWith(STRING_TERMINATOR, cursor)) {
+			return { end: cursor, next: cursor + STRING_TERMINATOR.length };
+		}
+	}
+	return undefined;
+}
+
 function* osc66Spans(text: string): Generator<{ metadata: string; payload: string }> {
 	let cursor = 0;
 	for (;;) {
@@ -243,12 +253,10 @@ function* osc66Spans(text: string): Generator<{ metadata: string; payload: strin
 		const metadataEnd = text.indexOf(";", metadataStart);
 		if (metadataEnd === -1) return;
 		const payloadStart = metadataEnd + 1;
-		const bell = text.indexOf("\x07", payloadStart);
-		const st = text.indexOf(STRING_TERMINATOR, payloadStart);
-		if (bell === -1 && st === -1) return;
-		const payloadEnd = bell !== -1 && (st === -1 || bell < st) ? bell : st;
-		yield { metadata: text.slice(metadataStart, metadataEnd), payload: text.slice(payloadStart, payloadEnd) };
-		cursor = payloadEnd + (payloadEnd === bell ? 1 : STRING_TERMINATOR.length);
+		const payloadEnd = osc66PayloadEnd(text, payloadStart);
+		if (!payloadEnd) return;
+		yield { metadata: text.slice(metadataStart, metadataEnd), payload: text.slice(payloadStart, payloadEnd.end) };
+		cursor = payloadEnd.next;
 	}
 }
 // APC sequences (`ESC _ ... ST|BEL`) — Kitty graphics commands such as the

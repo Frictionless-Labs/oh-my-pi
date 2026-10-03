@@ -26,11 +26,11 @@ function nextSixelStart(text: string, from: number): number {
 }
 
 function sixelEnd(text: string, payloadStart: number): number {
-	const bell = text.indexOf(SIXEL_END_BELL, payloadStart);
-	const sequence = text.indexOf(SIXEL_END_SEQUENCE, payloadStart);
-	if (bell === -1) return sequence === -1 ? -1 : sequence + SIXEL_END_SEQUENCE.length;
-	if (sequence === -1) return bell + SIXEL_END_BELL.length;
-	return bell < sequence ? bell + SIXEL_END_BELL.length : sequence + SIXEL_END_SEQUENCE.length;
+	for (let cursor = payloadStart; cursor < text.length; cursor += 1) {
+		if (text[cursor] === SIXEL_END_BELL) return cursor + SIXEL_END_BELL.length;
+		if (text.startsWith(SIXEL_END_SEQUENCE, cursor)) return cursor + SIXEL_END_SEQUENCE.length;
+	}
+	return -1;
 }
 
 /**
@@ -91,8 +91,7 @@ export function sanitizeWithOptionalSixelPassthrough(text: string, sanitize: (te
 		const payloadStart = sixelPayloadStart(text, start)!;
 		const end = sixelEnd(text, payloadStart);
 		if (end === -1) {
-			scan = start + 2;
-			continue;
+			break;
 		}
 		tokenized += text.slice(cursor, start);
 		tokenized += `${SIXEL_PLACEHOLDER_PREFIX}${preservedSequences.length}__`;
