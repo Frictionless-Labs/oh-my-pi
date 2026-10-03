@@ -1,6 +1,6 @@
 ---
 title: OH-MY-PI Fresh Stack Execution Ledger
-version: 2.0.0
+version: 2.1.0
 status: blocked
 created_date: 2026-10-03
 tags:
@@ -26,8 +26,10 @@ approved-SHA installation, or Desktop launcher change.
 | Upstream | `https://github.com/can1357/oh-my-pi.git` |
 | Fork `main` | `717f97f4d22b3d65c4a4eef6a744255d46f4d1a6` |
 | Upstream `v18.5.0` | `9348320cc4a30a7195d36a1f05a6c11bcb701a17` |
+| Latest upstream release | `v18.5.1@d0cc52397dc2a68d39cba49b0009b9e50ffd643e` |
+| Current upstream `main` | `d4d49e71bef3ac1420d45febf215b951decf5ae9` |
 | Preserved PR#1 head | `9a7703654d51345120c3e4202a46412fc4ae8ff7` |
-| Fresh code candidate | `e31c536eae2222224255e1f25719df5881f4be26` |
+| Fresh code candidate | `5728251d1839b537490ee5af7c2e3b74355ae701` |
 
 ## Focused branch stack
 
@@ -41,9 +43,12 @@ Every listed SHA was compared with its remote branch on 2026-10-03.
 | 4 | `codex/oh-my-pi-windows-correctness` | `06204fb4a0d69e5a5eaabe68f99993f49b1b3ed9` | Portable path, filesystem, and Rust behavior restored. |
 | 5 | `codex/oh-my-pi-owned-source-security` | `e31c536eae2222224255e1f25719df5881f4be26` | Owned-source boundary hardening plus v18.5 integration reconciliation. |
 
-The non-documentation tree at the fresh code candidate is byte-identical to
-the preserved PR#1 head. The value of the fresh stack is reviewability and
-rollback isolation, not a different product implementation.
+The non-documentation tree at layer 5 is byte-identical to the preserved PR#1
+head. The final candidate intentionally diverges to close independent-review
+findings: malformed model-ID affixes, bounded terminal and attachment scans,
+stack-wide pull-request workflow triggers, the frozen upstream monitor pin,
+and a locked robomp dependency graph. The final evidence commit only updates
+this ledger, the security/operations documents, and the source-bound SBOM.
 
 ## Current local verification
 
@@ -54,10 +59,12 @@ rollback isolation, not a different product implementation.
 | Python RPC | `pytest -q python/omp-rpc/tests` | `0` | 93 tests and 19 subtests passed. |
 | Python robomp | `pytest -q python/robomp/tests` | `0` | 672 passed, 4 skipped, 3 dependency deprecation warnings. |
 | Static | `CI=1 bun check` | `0` | TypeScript, formatting, and Rust checks passed; one unchanged `no-unsafe-optional-chaining` warning remains in an upstream test. |
-| Operational scripts | `CI=1 bun run test:scripts` | `0` | 132 passed, 1 platform skip. |
+| Operational scripts | `CI=1 bun run test:scripts` | `0` | 136 passed, 1 platform skip. |
+| Reviewer remediation | Contract and complexity regressions in catalog and TUI suites | `0` | Malformed affixes are preserved; 40,000 image markers completed in 17.58 ms, 160,000 unterminated SIXEL sequences in 5.56 ms, and 160,000 OSC66 spans in 30.56 ms. |
+| Python lock | `uv lock --check --project python/robomp` | `0` | The robomp lock resolves 35 packages, including the local omp-rpc workspace dependency. |
 | Focused security | `bun test <20 owned-source files>` | `0` | 453 passed, 0 failed. |
-| Secret history | `gitleaks git . --log-opts='--all'` | `0` | 28,809 commits and 555.91 MB scanned; no leaks. |
-| Secret tree | `gitleaks dir .` | `0` | 187.76 MB scanned; no leaks. |
+| Secret history | `gitleaks git . --log-opts='--all'` | `0` | 28,816 commits and 560.01 MB scanned; no leaks. |
+| Secret tree | `gitleaks dir .` | `0` | 201.70 MB scanned; no leaks. |
 | Diff integrity | `git diff --check` | `0` | No whitespace errors. |
 
 ## Current security blockers
@@ -66,6 +73,7 @@ rollback isolation, not a different product implementation.
 |---|---|---|
 | PR#1 aggregate CodeQL | GitHub check `111136751959` reports 9 new alerts: 7 High and 2 Medium. | `BLOCK_RELEASE` |
 | Candidate SBOM scan | Local Grype scan without database auto-update reports 8 High and 3 Medium findings in bundled TypeScript-Go developer binaries. | `PROVE_NOW` |
+| Upstream drift | Upstream published `v18.5.1` after this stack froze at `v18.5.0`; the release delta is not qualified here. | `PROVE_NOW` |
 | Fresh hosted CI | No PR exists for the focused stack, so no exact-SHA hosted matrix or CodeQL result exists. | `BLOCK_RELEASE` |
 | Contributor attestation | Repository policy requires MIKKOH-authored understanding and personal review/exercise evidence. | `BLOCK_RELEASE` |
 
@@ -78,4 +86,4 @@ is not a defensible statement of overall readiness.
 
 ## Terminal state
 
-`CODEX_OH_MY_PI_FRESH_STACK_BLOCKED_CODEQL_HUMAN_POLICY_HOSTED_CI`
+`CODEX_OH_MY_PI_FRESH_STACK_BLOCKED_SECURITY_UPSTREAM_DRIFT_HUMAN_POLICY_HOSTED_CI`

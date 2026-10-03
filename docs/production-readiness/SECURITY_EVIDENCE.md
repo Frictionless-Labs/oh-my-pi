@@ -1,6 +1,6 @@
 ---
 title: OH-MY-PI Current Security Evidence
-version: 2.0.0
+version: 2.1.0
 status: blocked
 created_date: 2026-10-03
 tags:
@@ -14,7 +14,7 @@ owner: MIKKOH Chen
 # Security Evidence
 
 This evidence binds the source inventory to code SHA
-`e31c536eae2222224255e1f25719df5881f4be26`. It does not claim that the
+`5728251d1839b537490ee5af7c2e3b74355ae701`. It does not claim that the
 documentation-only descendant, an uncreated PR, or a future merge has passed
 hosted security gates.
 
@@ -22,11 +22,12 @@ hosted security gates.
 
 | Gate | Result | Current evidence |
 |---|---|---|
-| Full Git history secrets | PASS | Gitleaks 8.30.1 scanned 28,809 commits and 555.91 MB with no findings. |
-| Working tree secrets | PASS | Gitleaks 8.30.1 scanned 187.76 MB with no findings. |
-| CycloneDX inventory | PASS | Syft 1.52.0 generated 2,254 components and reconciled all 565 external Bun lock records. |
-| SBOM identity | PASS | CycloneDX 1.7 metadata names `Frictionless-Labs/oh-my-pi` at exact code SHA `e31c536eae2222224255e1f25719df5881f4be26`. |
-| SBOM checksum | PASS | SHA-256 `32d239b67847cebdbdb5164b7f5b2536bf6e9faa279ba8aced66b1f699e8a7be`. |
+| Full Git history secrets | PASS | Gitleaks 8.30.1 scanned 28,816 commits and 560.01 MB with no findings. |
+| Working tree secrets | PASS | Gitleaks 8.30.1 scanned 201.70 MB with no findings. |
+| CycloneDX inventory | PASS | Syft 1.52.0 generated 2,290 components, reconciled all 565 external Bun lock records, and included 36 PyPI components. |
+| Python inventory | PASS | The SBOM includes the locked robomp and omp-rpc projects plus the resolved robomp dependency graph. |
+| SBOM identity | PASS | CycloneDX 1.7 metadata names `Frictionless-Labs/oh-my-pi` at exact code SHA `5728251d1839b537490ee5af7c2e3b74355ae701`. |
+| SBOM checksum | PASS | SHA-256 `22ea8502c8863413fb38f0ffc38eef3a26f697240ef53d829039f01714596ba6`. |
 | Vulnerability scan | BLOCKED | Grype found 8 High and 3 Medium Go findings in installed TypeScript-Go developer binaries. |
 | CodeQL | BLOCKED | PR#1 aggregate check failed with 9 new alerts: 7 High and 2 Medium. |
 | Fresh hosted analysis | UNKNOWN | No focused-stack PR or workflow result exists for the fresh code SHA. |

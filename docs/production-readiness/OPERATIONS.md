@@ -1,6 +1,6 @@
 ---
 title: OH-MY-PI Fresh Stack Operations
-version: 2.0.0
+version: 2.1.0
 status: blocked
 created_date: 2026-10-03
 tags:
@@ -19,17 +19,18 @@ owner: MIKKOH Chen
 |---|---|
 | Canonical repository | `Frictionless-Labs/oh-my-pi` |
 | Source baseline | Upstream `v18.5.0@9348320cc4a30a7195d36a1f05a6c11bcb701a17` |
-| Fresh code candidate | `e31c536eae2222224255e1f25719df5881f4be26` |
+| Fresh code candidate | `5728251d1839b537490ee5af7c2e3b74355ae701` |
 | Mandatory service cost | `$0`; existing local/OSS stack only |
 | Registry publication | Prohibited |
 | Merge or release | Not authorized and not ready |
 | Approved-SHA file | Not installed |
 | Finder acceptance | Not run |
 
-The implementation is a source candidate, not a production release. Local Pi
-continues to work from existing installations; discarding or superseding PR#1
-does not remove those installations. The fresh stack must not be installed as
-the approved runtime until every gate below closes.
+The implementation is a source candidate, not a production release. Existing
+Pi installations were not changed or removed; their current live operation was
+not reverified during this source qualification. Discarding or superseding
+PR#1 does not remove those installations. The fresh stack must not be installed
+as the approved runtime until every gate below closes.
 
 ## Review and integration order
 
@@ -40,7 +41,7 @@ the approved runtime until every gate below closes.
 | 3 | `codex/oh-my-pi-operations-governance` | Workflow permissions, CI boundaries, and release exclusions. |
 | 4 | `codex/oh-my-pi-windows-correctness` | Hosted Windows plus macOS/Linux parity. |
 | 5 | `codex/oh-my-pi-owned-source-security` | CodeQL, dependency audits, and owned-source review. |
-| 6 | `codex/oh-my-pi-readiness-evidence` | Evidence accuracy only; no functional expansion. |
+| 6 | `codex/oh-my-pi-readiness-evidence` | Independent-review fixes, dependency lock, and exact-SHA evidence. |
 
 Each pull request must target the prior branch until the stack is reviewed.
 After all layers are accepted, the maintainer may retarget or merge them in
@@ -56,6 +57,7 @@ repository’s human-contributor policy.
 | Hosted CI | BLOCKED | Exact focused-stack SHA passes Linux, macOS, and Windows. |
 | CodeQL | BLOCKED | Resolve or formally disposition all 9 live alerts. |
 | Artifact vulnerabilities | BLOCKED | Clear or prove exclusion of the 11 SBOM findings. |
+| Upstream drift | BLOCKED | Review and qualify the `v18.5.0..v18.5.1` delta or explicitly retain the frozen baseline. |
 | Merge | BLOCKED | Branch rules, reviews, and checks pass. |
 | Release | BLOCKED | Merged-SHA SBOM, checksums, provenance, canary, rollback, and Finder acceptance pass. |
 
@@ -70,7 +72,7 @@ repository’s human-contributor policy.
 
 ## Stop condition
 
-`CODEX_OH_MY_PI_FRESH_STACK_BLOCKED_CODEQL_HUMAN_POLICY_HOSTED_CI`
+`CODEX_OH_MY_PI_FRESH_STACK_BLOCKED_SECURITY_UPSTREAM_DRIFT_HUMAN_POLICY_HOSTED_CI`
 
 ## After completion
 
@@ -78,6 +80,7 @@ repository’s human-contributor policy.
 |---|---|
 | Human policy complete | Create Draft PRs in stack order. |
 | Hosted check fails | Fix only the owning layer; rerun the exact gate. |
+| Upstream delta accepted | Rebase a new qualified stack; do not rewrite these published branches. |
 | All PR gates green | Obtain human approvals, then merge in order. |
 | Merged SHA qualified | Generate release artifacts in a disposable workspace. |
 | Any security gate unresolved | Do not merge, tag, publish, approve, or install. |
