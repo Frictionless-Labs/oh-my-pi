@@ -83,12 +83,12 @@ jobs:
           python -m pip_audit --skip-editable --progress-spinner off
       - name: Install Rust audit tools
         run: |
-          cargo install cargo-audit --version 0.22.2 --locked
-          cargo install cargo-deny --version 0.20.2 --locked
+          cargo +stable install cargo-audit --version 0.22.2 --locked
+          cargo +stable install cargo-deny --version 0.20.2 --locked
       - name: Audit Rust dependencies and policy
         run: |
-          cargo audit
-          cargo deny check
+          cargo +stable audit
+          cargo +stable deny check
 
   codeql:
     name: CodeQL (${{ matrix.language }})
