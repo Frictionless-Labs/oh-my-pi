@@ -132,6 +132,10 @@ async function resolveOutboundUrlArgs(
 	seen: WeakSet<object> = new WeakSet(),
 ): Promise<unknown> {
 	if (typeof value === "string") {
+		// Only arguments that are themselves URLs: the router's repair of a
+		// cwd-prefixed `…/local://x` path must not rewrite free text that merely
+		// mentions one.
+		if (!extractUriScheme(value)) return value;
 		const router = InternalUrlRouter.instance();
 		const url = router.normalize(value);
 		if (!router.canHandle(url)) return value;
@@ -392,11 +396,20 @@ async function reconnectWithAbort(
  * "mcp__puppeteer_screenshot" instead of "mcp__puppeteer_puppeteer_screenshot".
  */
 function sanitizeMCPToolNamePart(value: string, fallback: string, keepDigits: boolean): string {
-	const sanitized = value
-		.toLowerCase()
-		.replace(keepDigits ? /[^a-z0-9_]+/g : /[^a-z_]+/g, "_")
-		.replace(/_+/g, "_")
-		.replace(/^_+|_+$/g, "");
+	let sanitized = "";
+	let separatorPending = false;
+	for (const character of value.toLowerCase()) {
+		const code = character.charCodeAt(0);
+		const allowedLetter = code >= 0x61 && code <= 0x7a;
+		const allowedDigit = keepDigits && code >= 0x30 && code <= 0x39;
+		if (allowedLetter || allowedDigit) {
+			if (separatorPending && sanitized.length > 0) sanitized += "_";
+			sanitized += character;
+			separatorPending = false;
+		} else {
+			separatorPending = sanitized.length > 0;
+		}
+	}
 
 	return sanitized.length > 0 ? sanitized : fallback;
 }

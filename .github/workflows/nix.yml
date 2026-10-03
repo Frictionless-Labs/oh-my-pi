@@ -3,40 +3,8 @@ name: OMP Nix
 on:
   push:
     branches: [main]
-    paths:
-      - ".github/workflows/nix.yml"
-      - ".cargo/**"
-      - "flake.nix"
-      - "flake.lock"
-      - "nix/**"
-      - "bun.lock"
-      - "package.json"
-      - "patches/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rust-toolchain.toml"
-      - "packages/**"
-      - "crates/**"
-      - "scripts/**"
-      - "docs/**"
   pull_request:
     branches: [main]
-    paths:
-      - ".github/workflows/nix.yml"
-      - ".cargo/**"
-      - "flake.nix"
-      - "flake.lock"
-      - "nix/**"
-      - "bun.lock"
-      - "package.json"
-      - "patches/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rust-toolchain.toml"
-      - "packages/**"
-      - "crates/**"
-      - "scripts/**"
-      - "docs/**"
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
@@ -49,9 +17,10 @@ jobs:
   evaluate:
     name: Evaluate flake
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31
         with:
           extra_nix_config: |
             accept-flake-config = true

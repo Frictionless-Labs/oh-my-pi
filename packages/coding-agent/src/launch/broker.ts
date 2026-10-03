@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
-import { FileLock, Process, type PtyRunResult, PtySession } from "@oh-my-pi/pi-natives";
+import { FileLock, linearRegexFind, Process, type PtyRunResult, PtySession } from "@oh-my-pi/pi-natives";
 import { isEnoent, isRecord, logger, postmortem, procmgr, sanitizeText, setProcessName } from "@oh-my-pi/pi-utils";
 import { TerminalQueryResponder } from "@oh-my-pi/pi-utils/vterm";
 import { hostHasInheritableConsole } from "../eval/py/spawn-options";
@@ -13,7 +13,13 @@ import {
 	truncateTailBytes,
 } from "@oh-my-pi/pi-tui/tools/streaming-output";
 import { workerEnvFromParent } from "../subprocess/worker-client";
-import { daemonBrokerEndpoint, writeDaemonScopeMeta } from "./paths";
+import {
+	DAEMON_META_FILE,
+	DAEMON_SPEC_FILE,
+	daemonBrokerEndpoint,
+	readStoredDaemonRecord,
+	writeDaemonScopeMeta,
+} from "./paths";
 import type { DaemonReadySpec, DaemonSnapshot, DaemonSpec } from "@oh-my-pi/pi-tui/tools/daemon";
 import { hasLiveDaemonProjectPresence, pruneDeadDaemonRuntimeDirs } from "./presence";
 import {
@@ -57,7 +63,6 @@ const PID_FILE = "broker.pid";
 const LEASE_HANDOFF_GRACE_MS = 500;
 /** Connect budget for the endpoint probe that answers "is a broker serving this scope?". */
 const LEASE_PROBE_TIMEOUT_MS = 250;
-const META_FILE = "meta.json";
 const LOG_FILE = "output.log";
 const PREVIOUS_LOG_FILE = "output.previous.log";
 const DAEMON_SPAWN_OPTIONS = resolveDaemonSpawnOptions({
@@ -93,13 +98,17 @@ interface ManagedDaemon {
 	portReady: boolean;
 	readinessBuffer: string;
 	outputOffset: number;
-	readyPattern?: RegExp;
+	readyPattern?: string;
 	restartTimer?: NodeJS.Timeout;
 	consecutiveFailures: number;
 	completionCapable: boolean;
 	pendingCompletions: DaemonCompletionNotification[];
 	completionSubscriptionId?: string;
 	persistQueue: Promise<void>;
+	/** Serialized spec last written (or recovered); a write is skipped while unchanged. */
+	persistedSpec?: string;
+	/** Serialized metadata last written (or recovered); a write is skipped while unchanged. */
+	persistedMeta?: string;
 }
 
 interface BrokerLease {
@@ -175,6 +184,13 @@ function syncReadyPending(record: ManagedDaemon): void {
 	if (!record.logReady) pending.push("log");
 	if (!record.portReady) pending.push("port");
 	record.snapshot.readyPending = pending.length > 0 ? pending : undefined;
+}
+
+/** Replace `filePath` via a pid-scoped temp file so readers never see a partial write. */
+async function writeFileAtomic(filePath: string, content: string): Promise<void> {
+	const tempPath = `${filePath}.${process.pid}.tmp`;
+	await Bun.write(tempPath, content);
+	await fs.rename(tempPath, filePath);
 }
 
 async function fileTextSlice(filePath: string, head: boolean): Promise<string> {
@@ -283,15 +299,14 @@ class DaemonLog {
 			: truncateTailBytes(combined, LOG_READ_BYTES).text;
 		let text = sanitizeText(terminalOutput);
 		if (grep) {
-			let pattern: RegExp;
 			try {
-				pattern = new RegExp(grep, "u");
+				linearRegexFind(grep, "");
 			} catch (error) {
 				throw new Error(`Invalid log regex: ${error instanceof Error ? error.message : String(error)}`);
 			}
 			text = text
 				.split("\n")
-				.filter(line => pattern.test(line))
+				.filter(line => linearRegexFind(grep, line) !== null)
 				.join("\n");
 		}
 		const options = { maxLines: lines, maxBytes: 256 * 1024 };
@@ -698,7 +713,7 @@ class DaemonBroker {
 			await existing?.log?.close();
 			if (spec.ready?.log) {
 				try {
-					new RegExp(spec.ready.log, "u");
+					linearRegexFind(spec.ready.log, "");
 				} catch (error) {
 					throw new Error(`Invalid readiness regex: ${error instanceof Error ? error.message : String(error)}`);
 				}
@@ -729,7 +744,7 @@ class DaemonBroker {
 				portReady: spec.ready?.port === undefined,
 				readinessBuffer: "",
 				outputOffset: 0,
-				readyPattern: spec.ready?.log ? new RegExp(spec.ready.log, "u") : undefined,
+				readyPattern: spec.ready?.log,
 				consecutiveFailures: 0,
 				persistQueue: Promise.resolve(),
 				completionCapable: owner !== undefined && this.#completionSubscriptions.has(owner),
@@ -959,10 +974,10 @@ class DaemonBroker {
 		if (generation !== record.generation) return;
 		record.readinessBuffer = (record.readinessBuffer + text).slice(-READINESS_BUFFER_CHARS);
 		if (!record.logReady && record.readyPattern) {
-			const match = record.readyPattern.exec(record.readinessBuffer);
-			if (match) {
+			const match = linearRegexFind(record.readyPattern, record.readinessBuffer);
+			if (match !== null) {
 				record.logReady = true;
-				record.snapshot.readyMatch = match[0].slice(0, 500);
+				record.snapshot.readyMatch = match.slice(0, 500);
 				syncReadyPending(record);
 			}
 		}
@@ -1153,10 +1168,11 @@ class DaemonBroker {
 		const boundGeneration = record.generation;
 		await this.#refreshDetached(record);
 		let matched: string | undefined;
-		let pattern: RegExp | undefined;
+		let pattern: string | undefined;
 		if (operation.pattern) {
 			try {
-				pattern = new RegExp(operation.pattern, "u");
+				linearRegexFind(operation.pattern, "");
+				pattern = operation.pattern;
 			} catch (error) {
 				throw new Error(`Invalid wait regex: ${error instanceof Error ? error.message : String(error)}`);
 			}
@@ -1172,9 +1188,9 @@ class DaemonBroker {
 		const condition = (): boolean => {
 			if (generationEnded()) return true;
 			if (pattern) {
-				const match = pattern.exec(record.readinessBuffer);
-				if (match) {
-					matched = match[0].slice(0, 500);
+				const match = linearRegexFind(pattern, record.readinessBuffer);
+				if (match !== null) {
+					matched = match.slice(0, 500);
 					return true;
 				}
 				// No further output can arrive once the process is gone; blocking
@@ -1315,7 +1331,6 @@ class DaemonBroker {
 	#serializeMetadata(record: ManagedDaemon): string {
 		return JSON.stringify({
 			daemon: { ...record.snapshot },
-			spec: record.spec,
 			completionEvents: record.completionCapable,
 			completionSubscriptionId: record.completionSubscriptionId,
 			completionPending: record.pendingCompletions.length > 0,
@@ -1328,15 +1343,23 @@ class DaemonBroker {
 	}
 
 	#persist(record: ManagedDaemon): void {
-		const metaPath = path.join(record.dir, META_FILE);
-		const tempPath = `${metaPath}.${process.pid}.tmp`;
+		const spec = JSON.stringify(record.spec);
 		const metadata = this.#serializeMetadata(record);
+		const writeSpec = spec !== record.persistedSpec;
+		const writeMeta = metadata !== record.persistedMeta;
+		if (!writeSpec && !writeMeta) return;
+		record.persistedSpec = spec;
+		record.persistedMeta = metadata;
 		record.persistQueue = record.persistQueue
 			.then(async () => {
-				await Bun.write(tempPath, metadata);
-				await fs.rename(tempPath, metaPath);
+				// Spec first: recovery must never find metadata whose spec is not on disk.
+				if (writeSpec) await writeFileAtomic(path.join(record.dir, DAEMON_SPEC_FILE), spec);
+				if (writeMeta) await writeFileAtomic(path.join(record.dir, DAEMON_META_FILE), metadata);
 			})
 			.catch(error => {
+				// Unknown on-disk state: force the next persist to write both files.
+				record.persistedSpec = undefined;
+				record.persistedMeta = undefined;
 				logger.warn("Failed to persist daemon metadata", {
 					name: record.snapshot.name,
 					error: error instanceof Error ? error.message : String(error),
@@ -1379,12 +1402,11 @@ class DaemonBroker {
 			if (!entry.isDirectory()) continue;
 			const dir = path.join(root, entry.name);
 			try {
-				const decoded: unknown = await Bun.file(path.join(dir, META_FILE)).json();
-				if (typeof decoded !== "object" || decoded === null || !("daemon" in decoded) || !("spec" in decoded)) {
-					continue;
-				}
+				const stored = await readStoredDaemonRecord(dir);
+				if (!stored) continue;
+				const { meta: decoded, spec: storedSpec, legacyLayout } = stored;
 				const snapshot = parseDaemonSnapshot(decoded.daemon);
-				const spec = parseDaemonSpec(decoded.spec);
+				const spec = parseDaemonSpec(storedSpec);
 				const processRef = snapshot.pid === undefined ? null : Process.fromPid(snapshot.pid);
 				const recoverableExit = !terminalState(snapshot.state) && snapshot.state !== "stopping";
 				const detached = spec.detached && recoverableExit && processRef?.status() === "running";
@@ -1412,9 +1434,12 @@ class DaemonBroker {
 					portReady: detached && (spec.ready?.port === undefined || snapshot.state === "ready"),
 					readinessBuffer: "",
 					outputOffset: detached ? snapshot.outputBytes : 0,
-					readyPattern: spec.ready?.log ? new RegExp(spec.ready.log, "u") : undefined,
+					readyPattern: spec.ready?.log,
 					consecutiveFailures: 0,
 					persistQueue: Promise.resolve(),
+					// Legacy files are rewritten once into the split layout.
+					persistedSpec: legacyLayout ? undefined : JSON.stringify(storedSpec),
+					persistedMeta: legacyLayout ? undefined : JSON.stringify(decoded),
 					completionCapable: "completionEvents" in decoded && decoded.completionEvents === true,
 					completionSubscriptionId:
 						"completionSubscriptionId" in decoded && typeof decoded.completionSubscriptionId === "string"
@@ -1473,9 +1498,9 @@ class DaemonBroker {
 						});
 					});
 				}
-				// Recovery may only change a subset of records. In particular, a
-				// terminal record already stored in the current format needs no write.
-				if (JSON.stringify(decoded) !== this.#serializeMetadata(record)) this.#persist(record);
+				// Recovery may only change a subset of records; #persist writes only
+				// the files whose serialized form differs from what was read.
+				this.#persist(record);
 			} catch (error) {
 				logger.warn("Failed to recover daemon record", {
 					name: entry.name,

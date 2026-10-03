@@ -31,11 +31,23 @@ export function normalizePlanTitle(title: string): { title: string; fileName: st
 	// Strip a trailing `.md` if the model included it, then sanitize:
 	// spaces → hyphens, any remaining invalid char → dropped.
 	const withoutExt = trimmed.replace(/\.md$/i, "");
-	const sanitized = withoutExt
-		.replace(/\s+/g, "-")
-		.replace(/[^A-Za-z0-9_-]/g, "")
-		.replace(/-{2,}/g, "-")
-		.replace(/^-+|-+$/g, "");
+	let sanitized = "";
+	let pendingHyphen = false;
+	for (const character of withoutExt) {
+		const code = character.charCodeAt(0);
+		const allowed =
+			(code >= 0x41 && code <= 0x5a) ||
+			(code >= 0x61 && code <= 0x7a) ||
+			(code >= 0x30 && code <= 0x39) ||
+			character === "_";
+		if (allowed) {
+			if (pendingHyphen && sanitized.length > 0) sanitized += "-";
+			sanitized += character;
+			pendingHyphen = false;
+		} else if (character === "-" || character.trim().length === 0) {
+			pendingHyphen = sanitized.length > 0;
+		}
+	}
 
 	if (!sanitized) {
 		throw new ToolError(

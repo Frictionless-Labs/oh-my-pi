@@ -16,7 +16,7 @@ use uucore::{display::Quotable, fast_inc::fast_inc_one};
 use brush_core::{ShellExtensions, builtins::Registration};
 use pi_vfs::BlockingFs;
 
-use crate::host::{Host, Utility, format_usage, matches_parser, util};
+use crate::host::{Host, Utility, format_usage, matches_parser, strip_errno, util};
 
 const LINE_NUMBER_BUF_SIZE: usize = 32;
 
@@ -77,14 +77,6 @@ enum CatError {
 	NoSuchDeviceOrAddress,
 	#[error("Too many levels of symbolic links")]
 	TooManySymlinks,
-}
-
-fn strip_errno(error: &io::Error) -> String {
-	let mut message = error.to_string();
-	if let Some(position) = message.find(" (os error ") {
-		message.truncate(position);
-	}
-	message
 }
 
 type CatResult<T> = Result<T, CatError>;
@@ -690,6 +682,8 @@ mod tests {
 		let (code, capture) = run_util::<Cat>(&["missing", "present"], "", directory.path());
 		assert_eq!(code, 1);
 		assert_eq!(capture.out(), "remaining\n");
-		assert_eq!(capture.err(), "cat: missing: No such file or directory\n");
+		let error = fs::metadata(directory.path().join("missing")).unwrap_err();
+		let message = super::strip_errno(&error);
+		assert_eq!(capture.err(), format!("cat: missing: {message}\n"));
 	}
 }

@@ -264,6 +264,11 @@ describe("resource_metadata chain", () => {
 		expect(auth.resourceMetadataUrl).toBe("https://gateway.example.com/jit/.well-known/oauth-protected-resource");
 	});
 
+	it("extracts challenge parameters from an adversarial-length diagnostic", () => {
+		const error = new Error(`${"x".repeat(100_000)} scope="jit"`);
+		expect(extractOAuthChallengeScopes(error)).toBe("jit");
+	});
+
 	it("merges challenge scopes into oauth endpoints when the JSON body omits them", () => {
 		const error = new Error(
 			'HTTP 403: {"error":"insufficient_scope","oauth":{"authorization_url":"https://auth.example.com/oauth/auth","token_url":"https://auth.example.com/oauth/token"}} [WWW-Authenticate: Bearer error="insufficient_scope", scope="jit"]',

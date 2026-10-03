@@ -434,15 +434,18 @@ fn pure_format_input_and_streaming_contracts_cover_uncaptured_cases() {
 	assert_eq!(section.file_hash.as_deref(), Some("1A2B"));
 	assert_eq!(section.diff, "PUT 2.=2:\n+BBB");
 
-	let cwd = Path::new("/workspace");
+	let cwd_guard = tempfile::tempdir().expect("temp cwd");
+	let cwd = cwd_guard.path();
 	let patch = Patch::parse("\n[foo.ts]\nPUT <1:\n+x", &SplitOptions::default())
 		.expect("normalizes leading blanks, cwd-relative paths, and explicit fallback paths");
 	assert_eq!(patch.sections[0].path, "foo.ts");
-	let absolute = Patch::parse("[/workspace/src/foo.ts]\nPUT <1:\n+x", &SplitOptions {
-		cwd:  Some(cwd),
-		path: None,
-	})
-	.expect("cwd relative");
+	let absolute_path = cwd.join("src/foo.ts");
+	let absolute =
+		Patch::parse(&format!("[{}]\nPUT <1:\n+x", absolute_path.display()), &SplitOptions {
+			cwd:  Some(cwd),
+			path: None,
+		})
+		.expect("cwd relative");
 	assert_eq!(absolute.sections[0].path, "src/foo.ts");
 	let fallback = Patch::parse("PUT <1:\n+x", &SplitOptions { cwd: None, path: Some("a.ts") })
 		.expect("fallback");
@@ -1096,7 +1099,55 @@ async fn edit_results_carry_unshifted_prior_provenance_only() {
 }
 
 #[tokio::test]
-async fn edit_of_first_line_with_prior_read_carries_no_provenance() {
+async fn edit_results_carry_prior_provenance_past_line_neutral_hunks() {
+	let source = (1..=40)
+		.map(|n| format!("line{n}\n"))
+		.collect::<Vec<_>>()
+		.concat();
+	let all_lines = (1..=40).collect::<Vec<u32>>();
+
+	let mut workspace = Workspace::new(EditMode::Hashline);
+	workspace.config.enforce_seen_lines = true;
+	workspace.write("a.txt", &source);
+	let read_tag = workspace.snapshot("a.txt", &source, Some(&all_lines));
+	let writer = common::DiskWriter::default();
+
+	// One inserted row and one cut row: lines 21-40 keep number and content.
+	workspace
+		.apply_json(
+			&json!({ "input": format!("[a.txt#{read_tag}]\nPUT >10:\n+new\nCUT 20.=20") }),
+			&writer,
+		)
+		.await
+		.expect("line-neutral edit applies");
+	let edited_source = workspace.read("a.txt").expect("edited file");
+	let edited_tag = file_hash(&edited_source);
+
+	let shifted = workspace
+		.apply_json(
+			&json!({ "input": format!("[a.txt#{edited_tag}]\nPUT 16.=16:\n+LINE16") }),
+			&writer,
+		)
+		.await
+		.expect_err("line 16 now holds old line 15, so its number must not carry");
+	assert!(shifted.to_string().contains("lines 16"), "{shifted}");
+
+	workspace
+		.apply_json(
+			&json!({ "input": format!("[a.txt#{edited_tag}]\nPUT 35.=35:\n+LINE35") }),
+			&writer,
+		)
+		.await
+		.expect("line 35 kept its number and content, so the full read still covers it");
+	let expected = source
+		.replacen("line10\n", "line10\nnew\n", 1)
+		.replacen("line20\n", "", 1)
+		.replacen("line35\n", "LINE35\n", 1);
+	assert_eq!(workspace.read("a.txt").as_deref(), Some(expected.as_str()));
+}
+
+#[tokio::test]
+async fn edit_of_first_line_with_prior_read_applies() {
 	let source: String = (1..=5).map(|n| format!("line{n}\n")).collect();
 	let all_lines = (1..=5).collect::<Vec<u32>>();
 

@@ -214,7 +214,75 @@ export function composerTokenRegex(mentionLabels: Iterable<string>): RegExp {
 	);
 }
 
-const VISION_MARKER_REGEX = /\[(Image|Video) #([1-9]\d*)((?:,[^\]\n]*)?)\](?: attachment:\/\/(\2))?/g;
+interface VisionMarker {
+	start: number;
+	end: number;
+	kind: "Image" | "Video";
+	index: number;
+	tail: string;
+	attachmentIndex?: number;
+}
+
+function* visionMarkers(text: string): Generator<VisionMarker> {
+	let cursor = 0;
+	for (;;) {
+		const imageStart = text.indexOf("[Image #", cursor);
+		const videoStart = text.indexOf("[Video #", cursor);
+		const start = imageStart === -1 ? videoStart : videoStart === -1 ? imageStart : Math.min(imageStart, videoStart);
+		if (start === -1) return;
+		const kind = text.startsWith("[Video #", start) ? "Video" : "Image";
+		const prefixLength = kind === "Video" ? "[Video #".length : "[Image #".length;
+		let indexEnd = start + prefixLength;
+		if (text.charCodeAt(indexEnd) < 49 || text.charCodeAt(indexEnd) > 57) {
+			cursor = start + 1;
+			continue;
+		}
+		while (indexEnd < text.length && text.charCodeAt(indexEnd) >= 48 && text.charCodeAt(indexEnd) <= 57) {
+			indexEnd += 1;
+		}
+		const indexText = text.slice(start + prefixLength, indexEnd);
+		let close = indexEnd;
+		if (text[close] === ",") {
+			close = text.indexOf("]", close + 1);
+			const newline = text.indexOf("\n", indexEnd);
+			if (close === -1) return;
+			if (newline !== -1 && newline < close) {
+				cursor = newline + 1;
+				continue;
+			}
+		} else if (text[close] !== "]") {
+			cursor = start + 1;
+			continue;
+		}
+		let end = close + 1;
+		let attachmentIndex: number | undefined;
+		const attachmentPrefix = " attachment://";
+		if (text.startsWith(attachmentPrefix, end) && text.startsWith(indexText, end + attachmentPrefix.length)) {
+			attachmentIndex = Number(indexText);
+			end += attachmentPrefix.length + indexText.length;
+		}
+		yield {
+			start,
+			end,
+			kind,
+			index: Number(indexText),
+			tail: text.slice(indexEnd, close),
+			attachmentIndex,
+		};
+		cursor = end;
+	}
+}
+
+function replaceVisionMarkers(text: string, replace: (marker: VisionMarker, raw: string) => string): string {
+	let result = "";
+	let cursor = 0;
+	for (const marker of visionMarkers(text)) {
+		result += text.slice(cursor, marker.start);
+		result += replace(marker, text.slice(marker.start, marker.end));
+		cursor = marker.end;
+	}
+	return cursor === 0 ? text : result + text.slice(cursor);
+}
 
 /** Marker for the Nth attached image or video preview: `[Image #N, WxH]`, or `[Image #N]` without dims. */
 export function formatVisionMarker(
@@ -232,14 +300,11 @@ export function formatVisionMarker(
  */
 export function shiftImageMarkers(text: string, offset: number, imageCount?: number): string {
 	if (offset === 0 || imageCount === 0) return text;
-	return text.replace(
-		VISION_MARKER_REGEX,
-		(match, kind: string, idx: string, tail: string, attachmentIdx: string | undefined) => {
-			if (imageCount !== undefined && Number(idx) > imageCount) return match;
-			const marker = `[${kind} #${Number(idx) + offset}${tail}]`;
-			return attachmentIdx === undefined ? marker : `${marker} attachment://${Number(attachmentIdx) + offset}`;
-		},
-	);
+	return replaceVisionMarkers(text, (match, raw) => {
+		if (imageCount !== undefined && match.index > imageCount) return raw;
+		const marker = `[${match.kind} #${match.index + offset}${match.tail}]`;
+		return match.attachmentIndex === undefined ? marker : `${marker} attachment://${match.attachmentIndex + offset}`;
+	});
 }
 
 /**
@@ -252,12 +317,11 @@ export function collapseImageMarkers(
 	register: (label: string, expansion: string) => void,
 ): string {
 	if (imageCount === 0) return text;
-	return text.replace(VISION_MARKER_REGEX, (match, kind: string, idx: string, tail: string) => {
-		const n = Number(idx);
-		if (n > imageCount) return match;
-		const chipKind = kind === "Video" ? "video" : "image";
-		const label = chipLabel(chipKind, n);
-		register(label, `[${kind} #${n}${tail}]`);
+	return replaceVisionMarkers(text, (match, raw) => {
+		if (match.index > imageCount) return raw;
+		const chipKind = match.kind === "Video" ? "video" : "image";
+		const label = chipLabel(chipKind, match.index);
+		register(label, `[${match.kind} #${match.index}${match.tail}]`);
 		return label;
 	});
 }
@@ -275,25 +339,16 @@ export function compactImageMarkers(
 ): { text: string; keep: number[] } | null {
 	if (imageCount === 0) return null;
 	const referenced = new Set<number>();
-	const scanner = new RegExp(VISION_MARKER_REGEX.source, "g");
-	for (;;) {
-		const match = scanner.exec(text);
-		if (match === null) break;
-		const n = Number(match[2]);
-		if (n <= imageCount) referenced.add(n);
-	}
+	for (const match of visionMarkers(text)) if (match.index <= imageCount) referenced.add(match.index);
 	const keep = options?.byAppearance ? [...referenced] : [...referenced].sort((a, b) => a - b);
 	if (keep.length === imageCount && keep.every((n, i) => n === i + 1)) return null;
 	const remap = new Map<number, number>(keep.map((n, i) => [n, i + 1]));
-	const rewritten = text.replace(
-		VISION_MARKER_REGEX,
-		(match, kind: string, idx: string, tail: string, attachmentIdx: string | undefined) => {
-			const mapped = remap.get(Number(idx));
-			if (mapped === undefined) return match;
-			const marker = `[${kind} #${mapped}${tail}]`;
-			return attachmentIdx === undefined ? marker : `${marker} attachment://${mapped}`;
-		},
-	);
+	const rewritten = replaceVisionMarkers(text, (match, raw) => {
+		const mapped = remap.get(match.index);
+		if (mapped === undefined) return raw;
+		const marker = `[${match.kind} #${mapped}${match.tail}]`;
+		return match.attachmentIndex === undefined ? marker : `${marker} attachment://${mapped}`;
+	});
 	return { text: rewritten, keep: keep.map(n => n - 1) };
 }
 

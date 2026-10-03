@@ -25,6 +25,8 @@ export interface TruncationMeta {
 	elidedLines?: number;
 	/** Artifact ID if full output was saved */
 	artifactId?: string;
+	/** Bytes the artifact cap dropped from the saved file's middle; the artifact is then a head/tail sample. */
+	artifactElidedBytes?: number;
 	/** Next offset for pagination (head truncation only) */
 	nextOffset?: number;
 	/**
@@ -62,7 +64,7 @@ export interface LimitsMeta {
 	resultLimit?: { reached: number; suggestion?: number };
 	headLimit?: { reached: number; suggestion: number };
 	/** `unit` may be absent in sessions persisted before it was recorded. */
-	columnTruncated?: { maxColumn: number; unit?: "bytes" | "chars"; artifactId?: string };
+	columnTruncated?: { maxColumn: number; unit?: "bytes" | "chars"; artifactId?: string; artifactElidedBytes?: number };
 }
 
 /**
@@ -79,8 +81,22 @@ export interface OutputMeta {
 	limits?: LimitsMeta;
 }
 
-// Regex: split on the first `:digits:digits` boundary to separate path from the rest
-const DIAG_PATH_RE = /^(.+?):(\d+:\d+\s+.*)$/;
+function splitDiagnosticPath(message: string): [string, string] | null {
+	for (let firstColon = message.indexOf(":"); firstColon > 0; firstColon = message.indexOf(":", firstColon + 1)) {
+		let cursor = firstColon + 1;
+		const lineStart = cursor;
+		while (cursor < message.length && message.charCodeAt(cursor) >= 48 && message.charCodeAt(cursor) <= 57)
+			cursor += 1;
+		if (cursor === lineStart || message[cursor] !== ":") continue;
+		cursor += 1;
+		const columnStart = cursor;
+		while (cursor < message.length && message.charCodeAt(cursor) >= 48 && message.charCodeAt(cursor) <= 57)
+			cursor += 1;
+		if (cursor === columnStart || message[cursor]?.trim() !== "") continue;
+		return [message.slice(0, firstColon), message.slice(firstColon + 1)];
+	}
+	return null;
+}
 
 /**
  * Reformat pre-formatted diagnostic messages into a multi-level, prefix-folded
@@ -96,13 +112,13 @@ export function formatGroupedDiagnosticMessages(messages: string[]): string {
 	const ungrouped: string[] = [];
 
 	for (const msg of messages) {
-		const match = DIAG_PATH_RE.exec(msg);
-		if (!match) {
+		const diagnostic = splitDiagnosticPath(msg);
+		if (!diagnostic) {
 			ungrouped.push(msg);
 			continue;
 		}
 
-		const [, rawFilePath, rest] = match;
+		const [rawFilePath, rest] = diagnostic;
 		const filePath = rawFilePath.replace(/\\/g, "/");
 		if (!diagnosticsByFile.has(filePath)) {
 			diagnosticsByFile.set(filePath, []);
@@ -130,8 +146,14 @@ export function formatGroupedDiagnosticMessages(messages: string[]): string {
 	return lines.join("\n");
 }
 
-/** Format a recoverable output artifact link. */
-export function formatFullOutputReference(artifactId: string): string {
+/**
+ * Format a recoverable output artifact link. An artifact the size cap cut
+ * (`artifactElidedBytes > 0`) is labeled as the head/tail sample it holds.
+ */
+export function formatFullOutputReference(artifactId: string, artifactElidedBytes?: number): string {
+	if (artifactElidedBytes !== undefined && artifactElidedBytes > 0) {
+		return `Read artifact://${artifactId} for a head/tail sample of the output; ${formatBytes(artifactElidedBytes)} from its middle was not saved`;
+	}
 	return `Read artifact://${artifactId} for full output`;
 }
 
@@ -206,7 +228,7 @@ export function formatTruncationMetaNotice(truncation: TruncationMeta, source?: 
 			? undefined
 			: source?.type === "report"
 				? `Read artifact://${truncation.artifactId} for full report (${source.value})`
-				: formatFullOutputReference(truncation.artifactId);
+				: formatFullOutputReference(truncation.artifactId, truncation.artifactElidedBytes);
 
 	if (truncation.direction === "middle") {
 		const head = truncation.headRange;
@@ -322,7 +344,7 @@ export function formatOutputNotice(meta: OutputMeta | undefined): string {
 		// stops matching the persisted "… 768 chars" text.
 		let columnNotice = `Some lines truncated to ${c.maxColumn} ${c.unit ?? "chars"}`;
 		if (c.artifactId != null) {
-			columnNotice += `. ${formatFullOutputReference(c.artifactId)}`;
+			columnNotice += `. ${formatFullOutputReference(c.artifactId, c.artifactElidedBytes)}`;
 		}
 		parts.push(columnNotice);
 	}

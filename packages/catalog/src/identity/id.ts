@@ -1,5 +1,3 @@
-const LEADING_BRACKETED_AFFIX_PATTERN = /^(?:\s*(?:\[|【)[^\]】]+(?:\]|】)\s*)+/u;
-const TRAILING_BRACKETED_AFFIX_PATTERN = /(?:\s*(?:\[|【)[^\]】]+(?:\]|】)\s*)+$/u;
 /** Strip a provider namespace prefix (`openai/gpt-5.4` → `gpt-5.4`). */
 // Cache keyed by model id (a bounded set of bundled/aggregator ids), so no eviction is needed.
 const bareModelIdCache = new Map<string, string>();
@@ -61,6 +59,46 @@ function hasBracketAffixMarker(value: string): boolean {
 	return false;
 }
 
+function isBracketOpen(value: string): boolean {
+	return value === "[" || value === "【";
+}
+
+function isBracketClose(value: string): boolean {
+	return value === "]" || value === "】";
+}
+
+function stripLeadingBracketedAffixes(value: string): string {
+	let cursor = 0;
+	let stripped = false;
+	for (;;) {
+		while (cursor < value.length && value[cursor]?.trim() === "") cursor += 1;
+		if (!isBracketOpen(value[cursor] ?? "")) break;
+		const contentStart = cursor + 1;
+		cursor = contentStart;
+		while (cursor < value.length && !isBracketClose(value[cursor] ?? "")) cursor += 1;
+		if (cursor === contentStart || cursor === value.length) break;
+		cursor += 1;
+		stripped = true;
+	}
+	return stripped ? value.slice(cursor).trimStart() : value;
+}
+
+function stripTrailingBracketedAffixes(value: string): string {
+	let cursor = value.length;
+	let stripped = false;
+	for (;;) {
+		while (cursor > 0 && value[cursor - 1]?.trim() === "") cursor -= 1;
+		if (!isBracketClose(value[cursor - 1] ?? "")) break;
+		const contentEnd = cursor - 1;
+		cursor = contentEnd;
+		while (cursor > 0 && !isBracketOpen(value[cursor - 1] ?? "")) cursor -= 1;
+		if (cursor === 0 || cursor === contentEnd) break;
+		cursor -= 1;
+		stripped = true;
+	}
+	return stripped ? value.slice(0, cursor).trimEnd() : value;
+}
+
 /**
  * Strip reseller / wrapper tags that are injected as bracketed affixes around an
  * upstream model id, e.g.
@@ -74,10 +112,10 @@ export function getBracketStrippedModelIdCandidates(modelId: string): string[] {
 	const normalized = normalizeModelIdWhitespace(modelId);
 	if (!normalized) return [];
 
-	const strippedLeading = normalized.replace(LEADING_BRACKETED_AFFIX_PATTERN, "");
+	const strippedLeading = stripLeadingBracketedAffixes(normalized);
 	const withoutLeading = normalizeModelIdWhitespace(strippedLeading);
-	const withoutTrailing = normalizeModelIdWhitespace(normalized.replace(TRAILING_BRACKETED_AFFIX_PATTERN, ""));
-	const withoutBoth = normalizeModelIdWhitespace(strippedLeading.replace(TRAILING_BRACKETED_AFFIX_PATTERN, ""));
+	const withoutTrailing = normalizeModelIdWhitespace(stripTrailingBracketedAffixes(normalized));
+	const withoutBoth = normalizeModelIdWhitespace(stripTrailingBracketedAffixes(strippedLeading));
 
 	const candidates = new Set<string>();
 	for (const candidate of [withoutBoth, withoutLeading, withoutTrailing]) {

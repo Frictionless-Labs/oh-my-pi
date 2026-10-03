@@ -1,0 +1,42 @@
+name: Upstream monitor
+
+on:
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_TAG: v18.4.8
+  BASELINE_SHA: 717f97f4d22b3d65c4a4eef6a744255d46f4d1a6
+  GH_TOKEN: ${{ github.token }}
+  UPSTREAM_REPOSITORY: can1357/oh-my-pi
+
+jobs:
+  divergence:
+    name: Upstream release and divergence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Verify frozen baseline and report upstream state
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest_tag=$(gh api "repos/${UPSTREAM_REPOSITORY}/releases/latest" --jq .tag_name)
+          baseline_sha=$(gh api "repos/${UPSTREAM_REPOSITORY}/git/ref/tags/${BASELINE_TAG}" --jq .object.sha)
+          upstream_main=$(gh api "repos/${UPSTREAM_REPOSITORY}/commits/main" --jq .sha)
+
+          printf 'approved_baseline=%s\n' "${BASELINE_TAG}@${BASELINE_SHA}"
+          printf 'latest_upstream_release=%s\n' "${latest_tag}"
+          printf 'upstream_main=%s\n' "${upstream_main}"
+
+          test "${baseline_sha}" = "${BASELINE_SHA}"
+          test "${latest_tag}" = "${BASELINE_TAG}"
+          test "$(git rev-parse HEAD)" = "${BASELINE_SHA}" || {
+            printf '%s\n' 'Fork main contains readiness commits after the frozen upstream baseline.'
+          }

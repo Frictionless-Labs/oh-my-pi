@@ -127,8 +127,8 @@ function renderDocs(inst: Tool, heading = "#", descriptionCap?: number): string 
  * its own refusal/repair (e.g. `todo` inferring an omitted `op`) is never
  * pre-empted by the host's generic wording plus the full docs. Lenience covers
  * schema mismatch only: malformed JSON and non-object content still throw. The
- * `__parseError`/`__rawJson` strip mirrors the agent loop so a payload cannot
- * forge the loop's parse-failure sentinels.
+ * `__parseError`/`__rawJson` strip keeps a payload from forging the agent
+ * loop's parse-failure sentinels.
  */
 function parseDeviceArgs(
 	device: Tool,
@@ -222,7 +222,10 @@ function compileInlineGlobs(patterns: readonly string[]): Bun.Glob[] {
 }
 
 /** Device-write content that requests docs instead of executing: empty, `?`, or `help`. */
-const HELP_CONTENT_RE = /^\s*(\?|help)?\s*$/i;
+function isHelpContent(content: string): boolean {
+	const normalized = content.trim().toLowerCase();
+	return normalized === "" || normalized === "?" || normalized === "help";
+}
 
 /** Shared tool state consumed by the `xd://` presentation layer. */
 export interface XdevState {
@@ -438,7 +441,7 @@ export async function dispatchXdevTool(
 	try {
 		const canonical = resolveRequiredXdevTool(state, name);
 
-		if (HELP_CONTENT_RE.test(content)) {
+		if (isHelpContent(content)) {
 			return {
 				result: { content: [{ type: "text", text: renderDocs(canonical) }] },
 				xdev: { tool: name, mode: "help" },

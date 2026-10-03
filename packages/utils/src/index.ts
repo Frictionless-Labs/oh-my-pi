@@ -35,6 +35,7 @@ export * from "./snowflake";
 export * from "./sqlite";
 export * from "./stderr-guard";
 export * from "./stream";
+export * from "./string";
 export * from "./tab-spacing";
 export * from "./temp";
 export * from "./tls-fetch";

@@ -81,6 +81,15 @@ describe("parseJsonWithRepair relaxed (final) parsing", () => {
 		});
 	});
 
+	it("preserves __proto__ as an own key without changing the result prototype", () => {
+		const parsed = parseJsonWithRepair<Record<string, unknown>>("{__proto__: {polluted: true}, value: 1}");
+
+		expect(Object.getPrototypeOf(parsed)).toBe(Object.prototype);
+		expect(Object.hasOwn(parsed, "__proto__")).toBe(true);
+		expect(parsed.__proto__).toEqual({ polluted: true });
+		expect(parsed.value).toBe(1);
+	});
+
 	it("strips trailing and stray commas", () => {
 		expect(parseJsonWithRepair<{ a: number }>('{"a":1,}')).toEqual({ a: 1 });
 		expect(parseJsonWithRepair<number[]>("[1, 2, ]")).toEqual([1, 2]);

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
@@ -97,6 +98,10 @@ describe("autosaveApprovedPlan", () => {
 		});
 		expect(result).toBe(path.join(cwd, ".omp", "plans", "AUTH_STORAGE_PLAN.md"));
 		expect(await Bun.file(result!).text()).toBe("# Plan\n\nShip it.\n");
+		if (process.platform !== "win32") {
+			expect((await fs.stat(result!)).mode & 0o777).toBe(0o600);
+			expect((await fs.stat(path.dirname(result!))).mode & 0o777).toBe(0o700);
+		}
 	});
 
 	it("suffices colliding filenames instead of overwriting", async () => {

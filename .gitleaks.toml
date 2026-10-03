@@ -1,0 +1,69 @@
+[extend]
+useDefault = true
+
+# Generated, ignored build outputs are not source-of-truth and are recreated by
+# the verified build. Excluding them keeps directory scans aligned with Git.
+[[allowlists]]
+description = "ignored generated build outputs"
+paths = [
+    '''^packages/coding-agent/dist/''',
+    '''^target/''',
+]
+
+# The catalog is generated from public provider metadata. Model identifiers are
+# high-entropy public names, not credentials.
+[[allowlists]]
+description = "generated public model catalog identifiers"
+targetRules = ["generic-api-key"]
+paths = ['''^packages/catalog/src/models\.json$''']
+
+# These source and documentation locations contain public OAuth client IDs,
+# protocol constants, model artifact hashes, or detector fixture text.
+[[allowlists]]
+description = "public protocol and artifact identifiers"
+targetRules = ["generic-api-key"]
+paths = [
+    '''^docs/provider-quirks\.md$''',
+    '''^packages/ai/src/providers/anthropic\.ts$''',
+    '''^packages/coding-agent/src/stt/models\.ts$''',
+    '''^packages/coding-agent/src/web/search/providers/perplexity\.ts$''',
+]
+
+# This command ships a dedicated debug certificate/key pair. It is public test
+# material and is never used as a production identity or authentication secret.
+[[allowlists]]
+description = "public Claude trace debug key"
+targetRules = ["private-key"]
+paths = ['''^packages/coding-agent/src/cli/claude-trace-cli\.ts$''']
+
+# Each listed test file intentionally exercises secret handling, token parsing,
+# retry behavior, or wire compatibility with synthetic fixture values.
+[[allowlists]]
+description = "synthetic credential test fixtures"
+targetRules = [
+    "generic-api-key",
+    "github-pat",
+    "gitlab-pat",
+    "gitlab-session-cookie",
+    "private-key",
+]
+paths = [
+    '''^packages/agent/test/tokenizer\.test\.ts$''',
+    '''^packages/ai/test/alibaba-token-plan\.test\.ts$''',
+    '''^packages/ai/test/factory-droid-gemini\.test\.ts$''',
+    '''^packages/ai/test/gitlab-duo-workflow-provider\.test\.ts$''',
+    '''^packages/ai/test/openai-codex-responses-lite\.test\.ts$''',
+    '''^packages/ai/test/openrouter-oauth\.test\.ts$''',
+    '''^packages/ai/test/transform-messages-redact-sensitive\.test\.ts$''',
+    '''^packages/ai/test/xiaomi-tp-login-integration\.test\.ts$''',
+    '''^packages/catalog/test/issue-1846-repro\.test\.ts$''',
+    '''^packages/coding-agent/test/acp-session-effects\.test\.ts$''',
+    '''^packages/coding-agent/test/agent-session-retry-cap\.test\.ts$''',
+    '''^packages/coding-agent/test/agent-session-retry-recovery\.test\.ts$''',
+    '''^packages/coding-agent/test/issue-1528-discovery-default-max-tokens\.test\.ts$''',
+    '''^packages/coding-agent/test/model-registry\.test\.ts$''',
+    '''^packages/coding-agent/test/secrets-obfuscator\.test\.ts$''',
+    '''^packages/coding-agent/test/skillshare/pack\.test\.ts$''',
+    '''^packages/coding-agent/test/tools/browser-cmux-socket\.test\.ts$''',
+    '''^packages/collab-web/test/codec\.test\.ts$''',
+]

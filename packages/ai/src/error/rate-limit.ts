@@ -37,6 +37,12 @@ const CREDITS_EXHAUSTED_PATTERN =
 // in unrelated diagnostics ("Failed to fetch usage credits from billing
 // service"), which must not rotate a healthy credential.
 const ANTHROPIC_CREDITS_REQUIRED_PATTERN = /\busage credits are required\b|\bcredits_required\b/i;
+// Prepaid-balance exhaustion: Cursor ERROR_USAGE_PRICING_REQUIRED (code 44,
+// surfaced as 429) "Your prepaid balance is used up: Add funds or enable auto
+// top-up …". Account-local until topped up, so rotate to a sibling. The `\b`
+// after the code keeps USAGE_PRICING_REQUIRED_CHANGEABLE out.
+const PREPAID_BALANCE_EXHAUSTED_PATTERN =
+	/\busage_pricing_required\b|\bprepaid balance\b[^\n]{0,40}\b(?:used up|exhausted|depleted)\b/i;
 // Account billing ceilings: Anthropic "monthly spend limit" (#4787) and Google
 // "Your project has exceeded its monthly spending cap" (#13090). The `\b` after
 // `cap` keeps "spending capacity" — a throttle, not a billing ceiling — out.
@@ -103,11 +109,14 @@ const CN_THROTTLE_PATTERN = /速率(?:限制|过快)|频率(?:过高|过快)|过
 const DASHSCOPE_TOKEN_LIMIT_DOC_PATTERN = /error-code[^()\s]*#token-limit/i;
 const DASHSCOPE_TOKEN_LIMIT_MESSAGE_PATTERN =
 	/\byou exceeded your current quota, please check your plan and billing details\b/i;
+const MAX_RATE_LIMIT_SCAN_CHARS = 8 * 1024;
 /** True for DashScope/Bailian's documented OpenAI-compatible TPM/TPS throttle. */
 export function isDashScopeTokenLimitText(errorMessage: string): boolean {
-	return (
-		DASHSCOPE_TOKEN_LIMIT_DOC_PATTERN.test(errorMessage) && DASHSCOPE_TOKEN_LIMIT_MESSAGE_PATTERN.test(errorMessage)
-	);
+	const bounded =
+		errorMessage.length <= MAX_RATE_LIMIT_SCAN_CHARS
+			? errorMessage
+			: `${errorMessage.slice(0, MAX_RATE_LIMIT_SCAN_CHARS / 2)}\n${errorMessage.slice(-MAX_RATE_LIMIT_SCAN_CHARS / 2)}`;
+	return DASHSCOPE_TOKEN_LIMIT_DOC_PATTERN.test(bounded) && DASHSCOPE_TOKEN_LIMIT_MESSAGE_PATTERN.test(bounded);
 }
 
 // Rolling per-minute token/request throttles (TPM/RPM). Providers report these
@@ -257,6 +266,10 @@ export function parseRateLimitReason(errorMessage: string): RateLimitReason {
 	}
 
 	if (ANTHROPIC_CREDITS_REQUIRED_PATTERN.test(errorMessage)) {
+		return "QUOTA_EXHAUSTED";
+	}
+
+	if (PREPAID_BALANCE_EXHAUSTED_PATTERN.test(errorMessage)) {
 		return "QUOTA_EXHAUSTED";
 	}
 
@@ -434,6 +447,7 @@ export function matchesUsageLimitText(errorMessage: string): boolean {
 	return (
 		USAGE_LIMIT_PATTERN.test(errorMessage) ||
 		ANTHROPIC_CREDITS_REQUIRED_PATTERN.test(errorMessage) ||
+		PREPAID_BALANCE_EXHAUSTED_PATTERN.test(errorMessage) ||
 		CREDITS_EXHAUSTED_PATTERN.test(errorMessage) ||
 		(CN_QUOTA_EXHAUSTED_PATTERN.test(errorMessage) && !CN_TRANSIENT_CAP_PATTERN.test(errorMessage)) ||
 		SPEND_LIMIT_PATTERN.test(errorMessage) ||

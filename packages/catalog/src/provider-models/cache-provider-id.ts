@@ -1,3 +1,4 @@
+import { stripTrailingCharacter } from "@oh-my-pi/pi-utils";
 import { CHARM_HYPER_API_BASE_URL, normalizeCharmHyperBaseUrl } from "../wire/charm-hyper";
 import { CODEX_CLIENT_VERSION } from "../wire/codex";
 import { CURSOR_DEFAULT_BASE_URL } from "../wire/cursor";
@@ -103,7 +104,7 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 			// v3 invalidates zero-price rows written before rich lanes were priced
 			// from the KDL rate card; v4 keys the scope on the token's stable
 			// account subject instead of the rotating JWT.
-			const baseUrl = (options.baseUrl ?? CURSOR_DEFAULT_BASE_URL).replace(/\/+$/, "");
+			const baseUrl = stripTrailingCharacter(options.baseUrl ?? CURSOR_DEFAULT_BASE_URL, "/");
 			const apiKey = options.apiKey ?? "";
 			const scope = `${cursorCredentialSubject(apiKey) ?? apiKey}\u0000${baseUrl}`;
 			return `cursor:rich-models-v4:${Bun.hash(scope).toString(36)}`;
@@ -153,14 +154,14 @@ export function resolveModelCacheProviderId(providerId: string, options: ModelCa
 		}
 		case "litellm": {
 			const baseUrl = options.baseUrl ?? getDefaultModelDiscoveryBaseUrl(providerId)!;
-			// rich-v11 invalidates rows that inherited ClinePass gateway metadata
-			// through generic models.dev bare-id enrichment (issue #10932). rich-v10
+			// rich-v12 invalidates namespaced ids that missed bare catalog references.
+			// rich-v11 excluded ClinePass gateway metadata (issue #10932). rich-v10
 			// filtered known non-conversational LiteLLM modes, unioned compat across
 			// the management endpoints, and keyed the deployment's `supports_vision`
 			// declaration into it; earlier versions invalidated rows whose
 			// `compatConfig` retained a colliding bundled model's provider-specific
 			// transport (e.g. Fireworks `wireModelIdMode`) (issue #9938).
-			return `litellm:rich-v11:${Bun.hash(baseUrl).toString(36)}`;
+			return `litellm:rich-v12:${Bun.hash(baseUrl).toString(36)}`;
 		}
 		case "gmi-cloud":
 		case "siliconflow":

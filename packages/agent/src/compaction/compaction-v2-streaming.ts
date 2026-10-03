@@ -33,7 +33,14 @@ import {
 	OPENAI_HEADER_VALUES,
 	OPENAI_HEADERS,
 } from "@oh-my-pi/pi-catalog/wire/codex";
-import { $env, isUnexpectedSocketCloseMessage, logger, ptree, stringifyJson } from "@oh-my-pi/pi-utils";
+import {
+	$env,
+	isUnexpectedSocketCloseMessage,
+	logger,
+	ptree,
+	stringifyJson,
+	stripTrailingCharacter,
+} from "@oh-my-pi/pi-utils";
 import { appendAzureApiVersion, resolveAzureOpenAiBaseUrl } from "./azure-openai-endpoint";
 import { prepareBedrockCompactionRequest } from "./bedrock";
 
@@ -148,7 +155,7 @@ function shouldUseCodexProviderTransport(model: Model): model is Model<"openai-c
 
 function resolveOpenAiResponsesEndpoint(baseUrl: string | undefined): string {
 	const rawBase = baseUrl && baseUrl.length > 0 ? baseUrl : "https://api.openai.com/v1";
-	const normalizedBase = rawBase.replace(/\/+$/, "");
+	const normalizedBase = stripTrailingCharacter(rawBase, "/");
 	if (normalizedBase.endsWith("/responses")) return normalizedBase;
 	if (normalizedBase.endsWith("/v1")) return `${normalizedBase}/responses`;
 	return `${normalizedBase}/v1/responses`;
@@ -156,7 +163,7 @@ function resolveOpenAiResponsesEndpoint(baseUrl: string | undefined): string {
 
 function resolveOpenAiCodexResponsesEndpoint(baseUrl: string | undefined): string {
 	const rawBase = baseUrl && baseUrl.trim().length > 0 ? baseUrl : CODEX_BASE_URL;
-	const normalizedBase = rawBase.replace(/\/+$/, "");
+	const normalizedBase = stripTrailingCharacter(rawBase, "/");
 	if (normalizedBase.endsWith("/codex/responses")) return normalizedBase;
 	if (normalizedBase.endsWith("/codex")) return `${normalizedBase}/responses`;
 	return `${normalizedBase}/codex/responses`;

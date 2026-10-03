@@ -75,7 +75,9 @@ _EFFORT_VALUES: Final[frozenset[str]] = frozenset(
 _THINKING_LEVEL_VALUES: Final[frozenset[str]] = _EFFORT_VALUES | frozenset({"off"})
 _STEERING_MODE_VALUES: Final[frozenset[str]] = frozenset({"all", "one-at-a-time"})
 _INTERRUPT_MODE_VALUES: Final[frozenset[str]] = frozenset({"immediate", "wait"})
-_CACHE_WARMING_MODE_VALUES: Final[frozenset[str]] = frozenset({"off", "streaming", "idle"})
+_CACHE_WARMING_MODE_VALUES: Final[frozenset[str]] = frozenset(
+    {"off", "streaming", "idle"}
+)
 _STOP_REASON_VALUES: Final[frozenset[str]] = frozenset(
     {"stop", "length", "toolUse", "error", "aborted"}
 )
@@ -1488,9 +1490,13 @@ def parse_queued_messages_state(
 ) -> QueuedMessagesState:
     payload = payload or {}
     return QueuedMessagesState(
-        steering=_tuple_of_strings(payload.get("steering"), field="queuedMessages.steering")
+        steering=_tuple_of_strings(
+            payload.get("steering"), field="queuedMessages.steering"
+        )
         or (),
-        follow_up=_tuple_of_strings(payload.get("followUp"), field="queuedMessages.followUp")
+        follow_up=_tuple_of_strings(
+            payload.get("followUp"), field="queuedMessages.followUp"
+        )
         or (),
     )
 
@@ -1590,7 +1596,9 @@ def parse_cache_warming_mode(payload: JsonObject) -> CacheWarmingMode:
     return cast(
         CacheWarmingMode,
         _require_literal(
-            payload.get("mode"), _CACHE_WARMING_MODE_VALUES, field="set_cache_warming.mode"
+            payload.get("mode"),
+            _CACHE_WARMING_MODE_VALUES,
+            field="set_cache_warming.mode",
         ),
     )
 
@@ -1644,11 +1652,15 @@ def parse_open_session_result(payload: JsonObject) -> OpenSessionResult:
     )
 
 
-def parse_remove_queued_message_result(payload: JsonObject) -> RemoveQueuedMessageResult:
+def parse_remove_queued_message_result(
+    payload: JsonObject,
+) -> RemoveQueuedMessageResult:
     return RemoveQueuedMessageResult(removed=_require_bool(payload, "removed"))
 
 
-def parse_promote_queued_message_result(payload: JsonObject) -> PromoteQueuedMessageResult:
+def parse_promote_queued_message_result(
+    payload: JsonObject,
+) -> PromoteQueuedMessageResult:
     return PromoteQueuedMessageResult(promoted=_require_bool(payload, "promoted"))
 
 
@@ -2015,9 +2027,13 @@ def parse_notification(payload: JsonObject) -> RpcNotification:
         return TodoAutoClearEvent()
     if event_type == "queue_update":
         return QueueUpdateEvent(
-            steering=_tuple_of_strings(payload.get("steering"), field="queue_update.steering")
+            steering=_tuple_of_strings(
+                payload.get("steering"), field="queue_update.steering"
+            )
             or (),
-            follow_up=_tuple_of_strings(payload.get("followUp"), field="queue_update.followUp")
+            follow_up=_tuple_of_strings(
+                payload.get("followUp"), field="queue_update.followUp"
+            )
             or (),
         )
     return UnknownNotification(

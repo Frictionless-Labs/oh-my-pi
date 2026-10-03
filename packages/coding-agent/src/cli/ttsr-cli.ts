@@ -604,7 +604,11 @@ function escapeRegexLiteral(value: string): string {
 
 function compileAstPrefilter(pattern: string): RegExp | undefined {
 	if (/\bas\s*\{/.test(pattern)) {
-		return /\bas\b(?:\s|\/\/[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*\{/;
+		// Type assertions may contain arbitrary whitespace and comments between
+		// `as` and `{`. The former nested comment regex could backtrack
+		// pathologically on adversarial input, so let the bounded native AST
+		// matcher inspect these patterns without a JavaScript regex prefilter.
+		return undefined;
 	}
 	const ignored = new Set(["if", "as", "const", "let", "var", "return", "true", "false", "null", "undefined"]);
 	const tokens = pattern

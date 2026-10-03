@@ -948,6 +948,36 @@ async def test_git_push_workspace_key_mismatch(proxy_settings: Settings) -> None
     assert "workspace_key" in resp.text
 
 
+@pytest.mark.parametrize(
+    "workspace_key",
+    [
+        "octo__widget__0",
+        "octo__widget__01",
+        "octo__widget__release",
+        "octo__widget__1..escape",
+        "octo__widget__1/escape",
+    ],
+)
+async def test_git_push_rejects_non_issue_workspace_keys(proxy_settings: Settings, workspace_key: str) -> None:
+    app = _build_app(proxy_settings)
+    body = json.dumps(
+        {
+            "repo": "octo/widget",
+            "workspace_key": workspace_key,
+            "branch": "main",
+            "expected_head": "0" * 40,
+        }
+    ).encode()
+    async with await _async_client(app) as client:
+        resp = await client.post(
+            "/gh/v1/git/push",
+            content=body,
+            headers={**_signed("POST", "/gh/v1/git/push", body), "Content-Type": "application/json"},
+        )
+    assert resp.status_code == 400
+    assert "workspace_key" in resp.text
+
+
 async def test_git_push_release_requires_hmac(proxy_settings: Settings) -> None:
     app = _build_app(proxy_settings)
     body = json.dumps(
@@ -974,6 +1004,30 @@ async def test_git_push_release_rejects_workspace_key_mismatch(proxy_settings: S
         {
             "repo": "octo/widget",
             "workspace_key": "other__repo__release",
+            "branch": "main",
+            "tag": "v1.2.3",
+            "expected_head": "0" * 40,
+        }
+    ).encode()
+    async with await _async_client(app) as client:
+        resp = await client.post(
+            "/gh/v1/git/push_release",
+            content=body,
+            headers={
+                **_signed("POST", "/gh/v1/git/push_release", body),
+                "Content-Type": "application/json",
+            },
+        )
+    assert resp.status_code == 400
+    assert "workspace_key" in resp.text
+
+
+async def test_git_push_release_rejects_issue_workspace_key(proxy_settings: Settings) -> None:
+    app = _build_app(proxy_settings)
+    body = json.dumps(
+        {
+            "repo": "octo/widget",
+            "workspace_key": "octo__widget__1",
             "branch": "main",
             "tag": "v1.2.3",
             "expected_head": "0" * 40,

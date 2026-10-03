@@ -40,7 +40,7 @@ use uucore::{
 
 use crate::{
 	file_backup::{backup_display, backup_path, determine_backup_mode, determine_backup_suffix},
-	host::{Host, Utility, format_usage, matches_parser, util},
+	host::{Host, Utility, format_usage, matches_parser, strip_errno, util},
 	progress::stderr_draw_target,
 };
 
@@ -74,15 +74,6 @@ enum CpError {
 }
 
 type CopyResult<T> = Result<T, CpError>;
-
-/// Renders an I/O error like `strerror`, without Rust's ` (os error N)`.
-fn strip_errno(error: &io::Error) -> String {
-	let mut message = error.to_string();
-	if let Some(position) = message.find(" (os error ") {
-		message.truncate(position);
-	}
-	message
-}
 
 /// `ENOTSUP`-style failure for operations a filesystem cannot perform.
 fn operation_not_supported() -> io::Error {
@@ -3480,7 +3471,9 @@ mod tests {
 		let (code, capture) = run_util::<Cp>(&["missing", "present", "dir"], "", fixture.path());
 
 		assert_eq!(code, 1);
-		assert_eq!(capture.err(), "cp: cannot stat 'missing': No such file or directory\n");
+		let error = fs::metadata(fixture.path().join("missing")).unwrap_err();
+		let message = super::strip_errno(&error);
+		assert_eq!(capture.err(), format!("cp: cannot stat 'missing': {message}\n"));
 		assert_eq!(fs::read(fixture.path().join("dir/present")).unwrap(), b"here");
 	}
 

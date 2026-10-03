@@ -494,7 +494,11 @@ function getSeverityRank(severity: ParsedDiagnostic["severity"]): number {
 
 /** Parse a diagnostic location and message, including optional source and code. */
 export function parseDiagnosticMessage(msg: string): ParsedDiagnostic | null {
-	const match = msg.match(/^(.+?):(\d+):(\d+)\s+\[(\w+)\]\s+(?:\[([^\]]+)\]\s+)?(.+?)(?:\s+\(([^)]+)\))?$/);
+	// Renderer diagnostics are line-oriented and ultimately truncated for the
+	// TUI. Bound parsing work before the compatibility expression runs.
+	const match = msg
+		.slice(0, TRUNCATE_LENGTHS.LINE * 8)
+		.match(/^(.+?):(\d+):(\d+)\s+\[(\w+)\]\s+(?:\[([^\]]+)\]\s+)?(.+?)(?:\s+\(([^)]+)\))?$/);
 	if (!match) return null;
 	return {
 		filePath: sanitizeDiagnosticDisplayText(match[1]),
@@ -964,8 +968,14 @@ export function shortenEmbeddedPaths(text: string, homeDir?: string, preserveSep
 	return textWithShortenedHome
 		.split(" ")
 		.map(segment => {
-			const leading = segment.match(/^[("'`[]*/)?.[0] ?? "";
-			const trailing = segment.match(/[)"'`,.;:\]]*$/)?.[0] ?? "";
+			let leadingLength = 0;
+			while (leadingLength < segment.length && "(\\\"'`[".includes(segment[leadingLength]!)) leadingLength += 1;
+			let trailingStart = segment.length;
+			while (trailingStart > leadingLength && ")\\\"'`,.;:]".includes(segment[trailingStart - 1]!)) {
+				trailingStart -= 1;
+			}
+			const leading = segment.slice(0, leadingLength);
+			const trailing = segment.slice(trailingStart);
 			const end = segment.length - trailing.length;
 			if (leading.length >= end) return segment;
 			const shortened = shortenPath(segment.slice(leading.length, end), resolvedHome);
@@ -1042,8 +1052,12 @@ export function formatToolWorkingDirectory(workdir: string | undefined, projectD
 		return undefined;
 	}
 	const relativePath = path.relative(resolvedProjectDir, resolvedWorkdir);
+	// On Windows, `path.relative` across drives returns the absolute target, which is not inside the project.
 	const isWithinProject =
-		relativePath.length > 0 && !relativePath.startsWith("..") && !relativePath.startsWith(`..${path.sep}`);
+		relativePath.length > 0 &&
+		!path.isAbsolute(relativePath) &&
+		!relativePath.startsWith("..") &&
+		!relativePath.startsWith(`..${path.sep}`);
 	const displayWorkdir = isWithinProject ? relativePath : shortenPath(resolvedWorkdir);
 	return replaceTabs(displayWorkdir);
 }

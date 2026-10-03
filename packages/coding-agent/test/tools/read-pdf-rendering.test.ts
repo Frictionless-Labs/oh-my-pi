@@ -74,11 +74,24 @@ describe("read PDF page screenshots", () => {
 		expect(tool.approval({ path: `${pdfPath}:2-2` })).toBe("read");
 	});
 
-	it("preserves a literal filename that looks like a PDF image listing", async () => {
-		const literalPath = `${pdfPath}:`;
-		await fs.writeFile(literalPath, "literal colon path wins\n");
-
-		const result = await new ReadTool(makeSession(testDir)).execute("read-literal", { path: literalPath });
-		expect(textOf(result)).toContain("literal colon path wins");
+	it("splits at the last PDF member boundary without backtracking", () => {
+		const prefix = `${"archive.pdf:".repeat(20_000)}nested/`;
+		expect(pdfRead.splitPdfImageReadPath(`${prefix}document.PDF:p7-img0.png`)).toEqual({
+			pdfPath: `${prefix}document.PDF`,
+			member: "p7-img0.png",
+			page: 7,
+		});
 	});
+
+	// Windows forbids `:` in filenames.
+	it.skipIf(process.platform === "win32")(
+		"preserves a literal filename that looks like a PDF image listing",
+		async () => {
+			const literalPath = `${pdfPath}:`;
+			await fs.writeFile(literalPath, "literal colon path wins\n");
+
+			const result = await new ReadTool(makeSession(testDir)).execute("read-literal", { path: literalPath });
+			expect(textOf(result)).toContain("literal colon path wins");
+		},
+	);
 });

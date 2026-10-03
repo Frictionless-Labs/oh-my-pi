@@ -24,7 +24,7 @@ use grep_regex::{RegexMatcher, RegexMatcherBuilder};
 use grep_searcher::{
 	BinaryDetection, Encoding, Searcher, SearcherBuilder, Sink, SinkContext, SinkFinish, SinkMatch,
 };
-use crate::host::{Host, StreamWriter, Utility};
+use crate::host::{Host, StreamWriter, Utility, forward_slash_display};
 
 use ignore::{
 	Match,
@@ -814,14 +814,17 @@ fn trim_ascii_start(bytes: &[u8]) -> &[u8] {
 	&bytes[start..]
 }
 
-/// Writes a display path, substituting `separator` for `/` when requested via
-/// `--path-separator`.
+/// Writes a display path, substituting `separator` for the platform path
+/// separator when requested via `--path-separator`.
 fn write_display_bytes<W: Write>(out: &mut W, bytes: &[u8], separator: Option<u8>) -> io::Result<()> {
 	let Some(separator) = separator else {
 		return out.write_all(bytes);
 	};
 	let mut rest = bytes;
-	while let Some(pos) = rest.iter().position(|&byte| byte == b'/') {
+	while let Some(pos) = rest
+		.iter()
+		.position(|&byte| byte == b'/' || (cfg!(windows) && byte == b'\\'))
+	{
 		out.write_all(&rest[..pos])?;
 		out.write_all(&[separator])?;
 		rest = &rest[pos + 1..];
@@ -1252,16 +1255,20 @@ fn build_walk(host: &mut Host, cli: &Rg, root: &Path) -> Result<RgWalk, String> 
 	Ok(RgWalk { request, filters })
 }
 
+/// Display spelling of a walked `path` under the `operand` it was found from
+/// (resolved to `root`), with `/` separators on Windows like the shell's other
+/// path-printing utilities.
 fn display_path(operand: &OsStr, root: &Path, path: &Path) -> PathBuf {
 	let rel = path.strip_prefix(root).unwrap_or(path);
 	if rel.as_os_str().is_empty() {
 		return PathBuf::from(operand);
 	}
-	if operand == OsStr::new(".") {
+	let display = if operand == OsStr::new(".") {
 		rel.to_path_buf()
 	} else {
 		Path::new(operand).join(rel)
-	}
+	};
+	forward_slash_display(&display).unwrap_or(display)
 }
 
 fn process_reader<M: Matcher, R: Read, W: Write>(

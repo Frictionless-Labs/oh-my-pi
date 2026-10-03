@@ -51,15 +51,38 @@ const PHRASE_BONUS = 1000;
  * search instead of narrowing it. Shadowing only misleads for real phrases.
  */
 const MIN_SHADOW_RESCAN_LENGTH = 3;
+const SEARCH_WORD_CHARACTER = /[\p{Letter}\p{Mark}\p{Number}]/u;
 
 function normalizeForSearch(value: string): string {
-	return value
-		.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-		.toLowerCase()
-		.replace(/[^\p{Letter}\p{Mark}\p{Number}]+/gu, " ")
-		.trim()
-		.replace(/\s+/g, " ");
+	const characters = [...value];
+	let normalized = "";
+	let pendingSpace = false;
+	for (let index = 0; index < characters.length; index += 1) {
+		const character = characters[index]!;
+		const previous = characters[index - 1];
+		const next = characters[index + 1];
+		const isUpper = character >= "A" && character <= "Z";
+		const previousIsLowerOrDigit =
+			previous !== undefined && ((previous >= "a" && previous <= "z") || (previous >= "0" && previous <= "9"));
+		const acronymBoundary =
+			isUpper &&
+			previous !== undefined &&
+			previous >= "A" &&
+			previous <= "Z" &&
+			next !== undefined &&
+			next >= "a" &&
+			next <= "z";
+		if ((isUpper && previousIsLowerOrDigit) || acronymBoundary) pendingSpace = normalized.length > 0;
+		const lowered = character.toLowerCase();
+		if (!SEARCH_WORD_CHARACTER.test(lowered)) {
+			pendingSpace = normalized.length > 0;
+			continue;
+		}
+		if (pendingSpace) normalized += " ";
+		normalized += lowered;
+		pendingSpace = false;
+	}
+	return normalized;
 }
 
 // Module-level memo of the per-text search index. `buildSearchIndex` is a pure

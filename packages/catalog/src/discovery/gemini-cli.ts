@@ -1,5 +1,5 @@
 import { type } from "@oh-my-pi/omptype";
-import type { FetchImpl } from "@oh-my-pi/pi-utils";
+import { type FetchImpl, stripTrailingCharacter } from "@oh-my-pi/pi-utils";
 import { collapseVariants, type VariantCollapseTable } from "../compat/collapse";
 import { compareRevision, parseRevision } from "../compat/revision";
 import { classifyModel } from "../compat/taxonomy";
@@ -84,7 +84,7 @@ export async function fetchGeminiCliQuotaModels(
 	options: FetchGeminiCliQuotaModelsOptions,
 ): Promise<ModelSpec<"google-gemini-cli">[] | null> {
 	const fetcher = discoveryFetch(options.fetcher);
-	const endpoint = (options.endpoint?.trim() || DEFAULT_ENDPOINT).replace(/\/+$/, "");
+	const endpoint = stripTrailingCharacter(options.endpoint?.trim() || DEFAULT_ENDPOINT, "/");
 	const headers = {
 		Authorization: `Bearer ${options.token}`,
 		"Content-Type": "application/json",

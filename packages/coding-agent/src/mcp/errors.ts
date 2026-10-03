@@ -85,7 +85,10 @@ function errorCode(error: unknown): string | number | undefined {
 }
 
 function sanitizeDiagnosticText(value: string, maxChars: number): string {
+	// Only the returned prefix can reach diagnostics. Bound regex work before
+	// redaction so a remote peer cannot spend CPU on data that will be dropped.
 	return value
+		.slice(0, maxChars * 4)
 		.replace(FETCH_VERBOSE_ADVICE, "")
 		.replace(/\b(Bearer|Basic)\s+[^\s,;]+/gi, "$1 [redacted]")
 		.replace(/([?&](?:access[-_]?token|api[-_]?key|key|token|secret|password)=)[^&#\s]+/gi, "$1[redacted]")
