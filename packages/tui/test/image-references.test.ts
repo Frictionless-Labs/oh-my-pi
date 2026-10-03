@@ -229,6 +229,18 @@ describe("collapseImageMarkers", () => {
 		expect(shifted.startsWith("[Image #2] [Image #3]")).toBe(true);
 		expect(shifted.endsWith("[Image #40001]")).toBe(true);
 	}, 1_500);
+
+	it("shifts a large comma-tail marker stream within the composer deadline", () => {
+		const markers = "[Image #1, 1x1] ".repeat(160_000);
+		const shifted = shiftImageMarkers(markers, 1);
+		expect(shifted.startsWith("[Image #2, 1x1] ")).toBe(true);
+		expect(shifted.endsWith("[Image #2, 1x1] ")).toBe(true);
+	}, 1_500);
+
+	it("rejects a large multiline comma-tail stream within the composer deadline", () => {
+		const malformed = `${"[Image #1,\n".repeat(160_000)}]`;
+		expect(shiftImageMarkers(malformed, 1)).toBe(malformed);
+	}, 1_500);
 });
 
 describe("compactImageMarkers", () => {

@@ -223,6 +223,14 @@ interface VisionMarker {
 	attachmentIndex?: number;
 }
 
+function visionMarkerTailTerminator(text: string, start: number): number {
+	for (let cursor = start; cursor < text.length; cursor += 1) {
+		const code = text.charCodeAt(cursor);
+		if (code === 0x5d || code === 0x0a) return cursor;
+	}
+	return -1;
+}
+
 function* visionMarkers(text: string): Generator<VisionMarker> {
 	let cursor = 0;
 	for (;;) {
@@ -249,13 +257,13 @@ function* visionMarkers(text: string): Generator<VisionMarker> {
 		const indexText = text.slice(start + prefixLength, indexEnd);
 		let close = indexEnd;
 		if (text[close] === ",") {
-			close = text.indexOf("]", close + 1);
-			const newline = text.indexOf("\n", indexEnd);
-			if (close === -1) return;
-			if (newline !== -1 && newline < close) {
-				cursor = newline + 1;
+			const terminator = visionMarkerTailTerminator(text, close + 1);
+			if (terminator === -1) return;
+			if (text.charCodeAt(terminator) === 0x0a) {
+				cursor = terminator + 1;
 				continue;
 			}
+			close = terminator;
 		} else if (text[close] !== "]") {
 			cursor = start + 1;
 			continue;
