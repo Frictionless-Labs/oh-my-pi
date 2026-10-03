@@ -31,6 +31,7 @@ from robomp.db import (
 from robomp.github_backend import GitHubBackend
 from robomp.github_client import GitHubError, IssueSummary
 from robomp.issue_index import IssueIndexSync
+from robomp.logging_utils import log_field
 from robomp.manual_triage import (
     InvalidIssueRef,
     ManualTriageConflict,
@@ -399,7 +400,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
                 try:
                     issue_index.ingest_webhook_payload(db, repo_full, x_github_event, payload)
                 except Exception:
-                    log.exception("issue index webhook ingest failed", extra={"repo": repo_full})
+                    log.exception("issue index webhook ingest failed", extra={"repo": log_field(repo_full)})
 
         def _resolve(repo_full: str, pr_number: int) -> str | None:
             row = db.find_issue_by_pr(repo_full, pr_number)
@@ -439,9 +440,9 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
                     log.info(
                         "autoclose cancelled",
                         extra={
-                            "issue_key": decision.issue_key,
+                            "issue_key": log_field(decision.issue_key),
                             "reason": cancel_reason,
-                            "event": x_github_event,
+                            "event": log_field(x_github_event),
                         },
                     )
 
@@ -457,7 +458,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
             }
 
         if not decision.should_queue:
-            log.info("skip", extra={"event": x_github_event, "reason": decision.reason})
+            log.info("skip", extra={"event": log_field(x_github_event), "reason": log_field(decision.reason)})
             db.record_event(
                 delivery_id=x_github_delivery,
                 event_type=x_github_event,
@@ -495,10 +496,10 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
                 log.info(
                     "rate_limited",
                     extra={
-                        "event": x_github_event,
-                        "delivery": x_github_delivery,
-                        "login": submitter,
-                        "association": decision.association,
+                        "event": log_field(x_github_event),
+                        "delivery": log_field(x_github_delivery),
+                        "login": log_field(submitter),
+                        "association": log_field(decision.association),
                         "used": admission.used,
                         "cap": cap,
                     },
@@ -529,10 +530,18 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
             pool: _AppPool = bag["pool"]
             pool.wake()
             log.info(
-                "queued", extra={"event": x_github_event, "delivery": x_github_delivery, "key": decision.issue_key}
+                "queued",
+                extra={
+                    "event": log_field(x_github_event),
+                    "delivery": log_field(x_github_delivery),
+                    "key": log_field(decision.issue_key),
+                },
             )
         else:
-            log.info("duplicate", extra={"event": x_github_event, "delivery": x_github_delivery})
+            log.info(
+                "duplicate",
+                extra={"event": log_field(x_github_event), "delivery": log_field(x_github_delivery)},
+            )
         return JSONResponse({"delivery": x_github_delivery, "state": "queued"}, status_code=202)
 
     @app.post("/replay")
@@ -699,7 +708,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
         if not db.requeue_event(target, from_states=INACTIVE_EVENT_STATES):
             raise HTTPException(409, f"delivery {target} is {event.state}; only inactive events can be retried")
         pool.wake()
-        log.info("manual retry", extra={"delivery": target})
+        log.info("manual retry", extra={"delivery": log_field(target)})
         return JSONResponse(
             {"delivery": target, "state": "queued", "mode": "retry"},
             status_code=202,
@@ -735,7 +744,7 @@ def create_app(settings: Settings | None = None, *, pool_factory: _PoolFactory =
         fired = await pool.cancel_event(delivery_id)
         log.info(
             "manual cancel",
-            extra={"delivery": delivery_id, "fired": fired, "state": event.state},
+            extra={"delivery": log_field(delivery_id), "fired": fired, "state": log_field(event.state)},
         )
         return JSONResponse(
             {"delivery": delivery_id, "fired": fired, "previous_state": event.state},

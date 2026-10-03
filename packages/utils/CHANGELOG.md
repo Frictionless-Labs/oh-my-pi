@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- Fixed relaxed JSON parsing treating `__proto__` as a prototype mutation instead of an own data property.
 - Fixed bounded asynchronous file peeks opening temporary paths through an unnecessary persistent file handle.
 
 ## [18.5.0] - 2026-10-03

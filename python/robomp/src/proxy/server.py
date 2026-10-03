@@ -50,6 +50,7 @@ from robomp.git_ops import (
     push_release as git_push_release,
 )
 from robomp.github_client import GitHubClient, GitHubError
+from robomp.logging_utils import log_field
 from robomp.proxy_hmac import HEADER_SIGNATURE, HEADER_TIMESTAMP, verify
 from robomp.sandbox import _safe_directory_env, _slot_subprocess_kwargs
 from robomp.sandbox import workspace_key as compute_workspace_key
@@ -212,11 +213,27 @@ def _pool_dir(cfg: Settings, repo: str) -> Path:
 
 
 def _workspace_repo_dir(cfg: Settings, workspace_key: str) -> Path:
-    # Defense-in-depth: workspace_key is constructed by `sandbox.workspace_key`
-    # as `<repo_with_underscores>__<number>`. Reject anything outside that shape.
-    if "/" in workspace_key or workspace_key.startswith(".") or ".." in workspace_key:
+    if not re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*__(?:[1-9][0-9]*|release)",
+        workspace_key,
+    ):
         raise HTTPException(400, f"invalid workspace_key {workspace_key!r}")
     return Path(cfg.workspace_root) / workspace_key / "repo"
+
+
+def _require_workspace_key(repo: str, workspace_key: str, *, release: bool) -> str:
+    _validate_repo_name(repo)
+    suffix = "release" if release else None
+    prefix = repo.replace("/", "__") + "__"
+    if not workspace_key.startswith(prefix):
+        raise HTTPException(400, "workspace_key does not match repo")
+    number = workspace_key.removeprefix(prefix)
+    if suffix is not None:
+        if number != suffix:
+            raise HTTPException(400, "workspace_key does not match release workspace")
+    elif not re.fullmatch(r"[1-9][0-9]*", number):
+        raise HTTPException(400, "workspace_key does not identify an issue workspace")
+    return workspace_key
 
 
 def _resolve_token(cfg: Settings) -> str:
@@ -359,7 +376,7 @@ def _clone_remote_auth(clone_url: str, expected_repo: str, token: str) -> _Remot
     except HTTPException:
         log.warning(
             "gh-proxy: refusing clone — clone_url is not permitted",
-            extra={"expected_repo": expected_repo},
+            extra={"expected_repo": log_field(expected_repo)},
         )
         raise
 
@@ -911,10 +928,7 @@ def create_proxy_app(settings: Settings) -> FastAPI:
         branch = _require_branch(data.get("branch"))
         expected_head = _require_str(data.get("expected_head"), "expected_head")
         slot_uid = _optional_slot_uid(data.get("slot_uid"))
-        # Sanity-check workspace_key matches the repo claim.
-        expected_prefix = repo.replace("/", "__") + "__"
-        if not workspace_key.startswith(expected_prefix):
-            raise HTTPException(400, "workspace_key does not match repo")
+        workspace_key = _require_workspace_key(repo, workspace_key, release=False)
         repo_dir = _workspace_repo_dir(settings, workspace_key)
         if not repo_dir.is_dir():
             raise HTTPException(404, f"workspace not found: {workspace_key}")
@@ -947,15 +961,12 @@ def create_proxy_app(settings: Settings) -> FastAPI:
     async def git_push_release_endpoint(request: Request) -> JSONResponse:
         data = await _json_body(request)
         repo = _require_str(data.get("repo"), "repo")
-        _validate_repo_name(repo)
         workspace_key = _require_str(data.get("workspace_key"), "workspace_key")
         branch = _require_branch(data.get("branch"))
         tag = _require_release_tag(data.get("tag"))
         expected_head = _require_str(data.get("expected_head"), "expected_head")
         slot_uid = _optional_slot_uid(data.get("slot_uid"))
-        expected_prefix = repo.replace("/", "__") + "__"
-        if not workspace_key.startswith(expected_prefix):
-            raise HTTPException(400, "workspace_key does not match repo")
+        workspace_key = _require_workspace_key(repo, workspace_key, release=True)
         repo_dir = _workspace_repo_dir(settings, workspace_key)
         if not repo_dir.is_dir():
             raise HTTPException(404, f"workspace not found: {workspace_key}")

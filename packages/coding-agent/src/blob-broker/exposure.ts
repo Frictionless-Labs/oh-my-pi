@@ -10,7 +10,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $which, getSafeProjectCwd, logger } from "@oh-my-pi/pi-utils";
+import { $which, getSafeProjectCwd, logger, openCloexecSync } from "@oh-my-pi/pi-utils";
 import { credentialString, type DestinationRuntimeConfig, optionString } from "./uploader-runtime";
 
 /** User-selectable exposure strategy. */
@@ -238,53 +238,75 @@ async function spawnUrlTunnel(
 	extract: (line: string) => string | null,
 	readyPattern?: RegExp,
 ): Promise<{ proc: Bun.Subprocess; baseUrl: string }> {
-	const logPath = path.join(os.tmpdir(), `omp-blob-tunnel-${Date.now().toString(36)}-${process.pid}.log`);
-	const fd = fs.openSync(logPath, "w");
+	const logPath = path.join(os.tmpdir(), `omp-blob-tunnel-${crypto.randomUUID()}.log`);
+	const fd = openCloexecSync(
+		logPath,
+		fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | (fs.constants.O_NOFOLLOW ?? 0),
+		0o600,
+	);
+	const removeLog = (): boolean => {
+		try {
+			fs.rmSync(logPath, { force: true });
+			return true;
+		} catch {
+			// Windows may keep the child-owned descriptor locked until process exit.
+			return false;
+		}
+	};
 	let proc: Bun.Subprocess;
 	try {
 		proc = Bun.spawn(argv, { env: process.env, stdin: "ignore", stdout: fd, stderr: fd, cwd: getSafeProjectCwd() });
+	} catch (error) {
+		removeLog();
+		throw error;
 	} finally {
 		fs.closeSync(fd);
 	}
 
-	const deadline = Date.now() + READY_TIMEOUT_MS;
-	let scanned = 0;
-	let baseUrl: string | undefined;
-	while (Date.now() < deadline) {
-		// Capture exit before reading: a process observed dead here cannot write
-		// after the read below, so that read sees its final output. Checking exit
-		// after the read races a fast tunnel that prints its URL and then exits.
-		const exitCode = proc.exitCode;
-		let text = "";
-		try {
-			text = await Bun.file(logPath).text();
-		} catch {
-			// Log file not flushed yet; keep polling.
-		}
-		if (text.length > scanned) {
-			if (baseUrl === undefined) {
-				for (const line of text.slice(scanned).split("\n")) {
-					const url = extract(line);
-					if (url) {
-						baseUrl = normalizeBaseUrl(url);
-						break;
+	try {
+		const deadline = Date.now() + READY_TIMEOUT_MS;
+		let scanned = 0;
+		let baseUrl: string | undefined;
+		while (Date.now() < deadline) {
+			// Capture exit before reading: a process observed dead here cannot write
+			// after the read below, so that read sees its final output. Checking exit
+			// after the read races a fast tunnel that prints its URL and then exits.
+			const exitCode = proc.exitCode;
+			let text = "";
+			try {
+				text = await Bun.file(logPath).text();
+			} catch {
+				// Log file not flushed yet; keep polling.
+			}
+			if (text.length > scanned) {
+				if (baseUrl === undefined) {
+					for (const line of text.slice(scanned).split("\n")) {
+						const url = extract(line);
+						if (url) {
+							baseUrl = normalizeBaseUrl(url);
+							break;
+						}
 					}
+					scanned = text.lastIndexOf("\n") + 1;
 				}
-				scanned = text.lastIndexOf("\n") + 1;
+				// The URL banner can precede edge registration (cloudflared prints the
+				// hostname before any connection is live); wait for the ready marker.
+				if (baseUrl !== undefined && (!readyPattern || readyPattern.test(text))) {
+					return { proc, baseUrl };
+				}
 			}
-			// The URL banner can precede edge registration (cloudflared prints the
-			// hostname before any connection is live); wait for the ready marker.
-			if (baseUrl !== undefined && (!readyPattern || readyPattern.test(text))) {
-				return { proc, baseUrl };
+			if (exitCode !== null) {
+				throw new Error(`${argv[0]} exited with code ${exitCode} before reporting a tunnel URL`);
 			}
+			await Bun.sleep(150);
 		}
-		if (exitCode !== null) {
-			throw new Error(`${argv[0]} exited with code ${exitCode} before reporting a tunnel URL`);
+		killTunnelProcess(proc);
+		throw new Error(`${argv[0]} did not report a tunnel URL within ${READY_TIMEOUT_MS / 1000}s`);
+	} finally {
+		if (!removeLog()) {
+			void proc.exited.then(removeLog, removeLog);
 		}
-		await Bun.sleep(150);
 	}
-	killTunnelProcess(proc);
-	throw new Error(`${argv[0]} did not report a tunnel URL within ${READY_TIMEOUT_MS / 1000}s`);
 }
 
 function processExposure(kind: ExposureKind, baseUrl: string, proc: Bun.Subprocess): ActiveExposure {

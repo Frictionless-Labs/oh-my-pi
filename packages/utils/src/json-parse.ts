@@ -223,7 +223,12 @@ class RelaxedJson {
 			}
 			const value = this.#value(true);
 			if (value === INCOMPLETE) return out;
-			out[key] = value;
+			Object.defineProperty(out, key, {
+				value,
+				enumerable: true,
+				writable: true,
+				configurable: true,
+			});
 			lex.ws();
 			const d = lex.peek();
 			if (d === COMMA) {
