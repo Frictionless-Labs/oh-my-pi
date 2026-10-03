@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:0b594fb8-c246-42a6-8b50-fda5ecae928d",
+  "serialNumber": "urn:uuid:3daadb94-c2f4-409f-b376-5dacfc8cf642",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-10-03T17:17:16-04:00",
+    "timestamp": "2026-10-03T17:27:05-04:00",
     "tools": {
       "components": [
         {
@@ -20,7 +20,7 @@
       "bom-ref": "cc5efc646b2364da",
       "type": "file",
       "name": "Frictionless-Labs/oh-my-pi",
-      "version": "5728251d1839b537490ee5af7c2e3b74355ae701"
+      "version": "09c06f0a9868c5f629981aa76c9dd7bf3561fad0"
     },
     "properties": [
       {
@@ -11019,19 +11019,39 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/adm-zip@0.6.1",
+      "bom-ref": "pkg:npm/adm-zip@0.6.1?package-id=1b9335dbbdbe29fc",
       "type": "library",
       "name": "adm-zip",
       "version": "0.6.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:adm-zip_project:adm-zip:0.6.1:*:*:*:*:node.js:*:*",
       "purl": "pkg:npm/adm-zip@0.6.1",
       "properties": [
         {
-          "name": "omp:inventory:source",
-          "value": "bun.lock"
+          "name": "syft:package:foundBy",
+          "value": "javascript-lock-cataloger"
         },
         {
-          "name": "omp:inventory:scope",
-          "value": "locked dependency superset"
+          "name": "syft:package:language",
+          "value": "javascript"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "npm"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "javascript-bun-lock-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/bun.lock"
         }
       ]
     },
@@ -51179,36 +51199,180 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/is-fullwidth-code-point@3.0.0",
+      "bom-ref": "pkg:npm/is-fullwidth-code-point@3.0.0?package-id=3f6579a5ac166617",
       "type": "library",
       "name": "is-fullwidth-code-point",
       "version": "3.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:is-fullwidth-code-point:is-fullwidth-code-point:3.0.0:*:*:*:*:*:*:*",
       "purl": "pkg:npm/is-fullwidth-code-point@3.0.0",
       "properties": [
         {
-          "name": "omp:inventory:source",
-          "value": "bun.lock"
+          "name": "syft:package:foundBy",
+          "value": "javascript-lock-cataloger"
         },
         {
-          "name": "omp:inventory:scope",
-          "value": "locked dependency superset"
+          "name": "syft:package:language",
+          "value": "javascript"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "npm"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "javascript-bun-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth-code-point:is_fullwidth_code_point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth_code_point:is-fullwidth-code-point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth_code_point:is_fullwidth_code_point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth-code:is-fullwidth-code-point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth-code:is_fullwidth_code_point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth_code:is-fullwidth-code-point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth_code:is_fullwidth_code_point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth:is-fullwidth-code-point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth:is_fullwidth_code_point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth:is-fullwidth-code-point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth:is_fullwidth_code_point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is:is-fullwidth-code-point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is:is_fullwidth_code_point:3.0.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/bun.lock"
         }
       ]
     },
     {
-      "bom-ref": "pkg:npm/is-fullwidth-code-point@5.1.0",
+      "bom-ref": "pkg:npm/is-fullwidth-code-point@5.1.0?package-id=a6c170b61fd129f8",
       "type": "library",
       "name": "is-fullwidth-code-point",
       "version": "5.1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:is-fullwidth-code-point:is-fullwidth-code-point:5.1.0:*:*:*:*:*:*:*",
       "purl": "pkg:npm/is-fullwidth-code-point@5.1.0",
       "properties": [
         {
-          "name": "omp:inventory:source",
-          "value": "bun.lock"
+          "name": "syft:package:foundBy",
+          "value": "javascript-lock-cataloger"
         },
         {
-          "name": "omp:inventory:scope",
-          "value": "locked dependency superset"
+          "name": "syft:package:language",
+          "value": "javascript"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "npm"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "javascript-bun-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth-code-point:is_fullwidth_code_point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth_code_point:is-fullwidth-code-point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth_code_point:is_fullwidth_code_point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth-code:is-fullwidth-code-point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth-code:is_fullwidth_code_point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth_code:is-fullwidth-code-point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth_code:is_fullwidth_code_point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth:is-fullwidth-code-point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is-fullwidth:is_fullwidth_code_point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth:is-fullwidth-code-point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is_fullwidth:is_fullwidth_code_point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is:is-fullwidth-code-point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:is:is_fullwidth_code_point:5.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/bun.lock"
         }
       ]
     },
@@ -124412,6 +124576,12 @@
       ]
     },
     {
+      "ref": "pkg:npm/is-fullwidth-code-point@5.1.0?package-id=a6c170b61fd129f8",
+      "dependsOn": [
+        "pkg:npm/get-east-asian-width@1.7.0?package-id=85398668067a97a8"
+      ]
+    },
+    {
       "ref": "pkg:npm/katex@0.18.7?package-id=87799facc62725c7",
       "dependsOn": [
         "pkg:npm/commander@15.0.0?package-id=7179dcecaa93c087"
@@ -124533,6 +124703,8 @@
       "dependsOn": [
         "pkg:npm/emoji-regex@10.6.0?package-id=e4b534cb4f77c313",
         "pkg:npm/emoji-regex@8.0.0?package-id=6e8b6b33e723b5f1",
+        "pkg:npm/is-fullwidth-code-point@3.0.0?package-id=3f6579a5ac166617",
+        "pkg:npm/is-fullwidth-code-point@5.1.0?package-id=a6c170b61fd129f8",
         "pkg:npm/strip-ansi@6.0.1?package-id=4fbeaa245780cb1b",
         "pkg:npm/strip-ansi@7.2.0?package-id=f0b49ec15279e419"
       ]

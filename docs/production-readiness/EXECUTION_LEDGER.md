@@ -29,7 +29,7 @@ approved-SHA installation, or Desktop launcher change.
 | Latest upstream release | `v18.5.1@d0cc52397dc2a68d39cba49b0009b9e50ffd643e` |
 | Current upstream `main` | `d4d49e71bef3ac1420d45febf215b951decf5ae9` |
 | Preserved PR#1 head | `9a7703654d51345120c3e4202a46412fc4ae8ff7` |
-| Fresh code candidate | `5728251d1839b537490ee5af7c2e3b74355ae701` |
+| Fresh code candidate | `09c06f0a9868c5f629981aa76c9dd7bf3561fad0` |
 
 ## Focused branch stack
 
@@ -60,11 +60,11 @@ this ledger, the security/operations documents, and the source-bound SBOM.
 | Python robomp | `pytest -q python/robomp/tests` | `0` | 672 passed, 4 skipped, 3 dependency deprecation warnings. |
 | Static | `CI=1 bun check` | `0` | TypeScript, formatting, and Rust checks passed; one unchanged `no-unsafe-optional-chaining` warning remains in an upstream test. |
 | Operational scripts | `CI=1 bun run test:scripts` | `0` | 136 passed, 1 platform skip. |
-| Reviewer remediation | Contract and complexity regressions in catalog and TUI suites | `0` | Malformed affixes are preserved; 40,000 image markers completed in 17.58 ms, 160,000 unterminated SIXEL sequences in 5.56 ms, and 160,000 OSC66 spans in 30.56 ms. |
+| Reviewer remediation | Contract and complexity regressions in catalog and TUI suites | `0` | Malformed affixes are preserved; 160,000 valid comma-tail markers completed in 50.47 ms, malformed multiline markers in 3.53 ms, unterminated SIXEL sequences in 5.56 ms, and OSC66 spans in 30.56 ms. |
 | Python lock | `uv lock --check --project python/robomp` | `0` | The robomp lock resolves 35 packages, including the local omp-rpc workspace dependency. |
 | Focused security | `bun test <20 owned-source files>` | `0` | 453 passed, 0 failed. |
-| Secret history | `gitleaks git . --log-opts='--all'` | `0` | 28,816 commits and 560.01 MB scanned; no leaks. |
-| Secret tree | `gitleaks dir .` | `0` | 201.70 MB scanned; no leaks. |
+| Secret history | `gitleaks git . --log-opts='--all'` | `0` | 28,817 commits and 560.01 MB scanned; no leaks. |
+| Secret tree | `gitleaks dir .` | `0` | 201.71 MB scanned; no leaks. |
 | Diff integrity | `git diff --check` | `0` | No whitespace errors. |
 
 ## Current security blockers

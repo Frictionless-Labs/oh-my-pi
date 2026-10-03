@@ -19,7 +19,7 @@ owner: MIKKOH Chen
 |---|---|
 | Canonical repository | `Frictionless-Labs/oh-my-pi` |
 | Source baseline | Upstream `v18.5.0@9348320cc4a30a7195d36a1f05a6c11bcb701a17` |
-| Fresh code candidate | `5728251d1839b537490ee5af7c2e3b74355ae701` |
+| Fresh code candidate | `09c06f0a9868c5f629981aa76c9dd7bf3561fad0` |
 | Mandatory service cost | `$0`; existing local/OSS stack only |
 | Registry publication | Prohibited |
 | Merge or release | Not authorized and not ready |

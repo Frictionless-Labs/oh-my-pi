@@ -14,7 +14,7 @@ owner: MIKKOH Chen
 # Security Evidence
 
 This evidence binds the source inventory to code SHA
-`5728251d1839b537490ee5af7c2e3b74355ae701`. It does not claim that the
+`09c06f0a9868c5f629981aa76c9dd7bf3561fad0`. It does not claim that the
 documentation-only descendant, an uncreated PR, or a future merge has passed
 hosted security gates.
 
@@ -22,12 +22,12 @@ hosted security gates.
 
 | Gate | Result | Current evidence |
 |---|---|---|
-| Full Git history secrets | PASS | Gitleaks 8.30.1 scanned 28,816 commits and 560.01 MB with no findings. |
-| Working tree secrets | PASS | Gitleaks 8.30.1 scanned 201.70 MB with no findings. |
+| Full Git history secrets | PASS | Gitleaks 8.30.1 scanned 28,817 commits and 560.01 MB with no findings. |
+| Working tree secrets | PASS | Gitleaks 8.30.1 scanned 201.71 MB with no findings. |
 | CycloneDX inventory | PASS | Syft 1.52.0 generated 2,290 components, reconciled all 565 external Bun lock records, and included 36 PyPI components. |
 | Python inventory | PASS | The SBOM includes the locked robomp and omp-rpc projects plus the resolved robomp dependency graph. |
-| SBOM identity | PASS | CycloneDX 1.7 metadata names `Frictionless-Labs/oh-my-pi` at exact code SHA `5728251d1839b537490ee5af7c2e3b74355ae701`. |
-| SBOM checksum | PASS | SHA-256 `22ea8502c8863413fb38f0ffc38eef3a26f697240ef53d829039f01714596ba6`. |
+| SBOM identity | PASS | CycloneDX 1.7 metadata names `Frictionless-Labs/oh-my-pi` at exact code SHA `09c06f0a9868c5f629981aa76c9dd7bf3561fad0`. |
+| SBOM checksum | PASS | SHA-256 `b182dc3970c0976cd787653d39e2117d134e45311cca4a1688f8f63e61ef19ff`. |
 | Vulnerability scan | BLOCKED | Grype found 8 High and 3 Medium Go findings in installed TypeScript-Go developer binaries. |
 | CodeQL | BLOCKED | PR#1 aggregate check failed with 9 new alerts: 7 High and 2 Medium. |
 | Fresh hosted analysis | UNKNOWN | No focused-stack PR or workflow result exists for the fresh code SHA. |
